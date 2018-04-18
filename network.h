@@ -24,8 +24,8 @@ namespace kristforge::network {
 		/** A callback for when a solution is accepted */
 		std::optional<std::function<void(kristforge::Solution)>> onSolved;
 
-		/** A callback for when a solution is rejected */
-		std::optional<std::function<void(kristforge::Solution)>> onRejected;
+		/** A callback for when a solution is rejected - second param is error message */
+		std::optional<std::function<void(kristforge::Solution, const std::string &message)>> onRejected;
 	};
 
 	/** Connects to the node and synchronously sets mining target and submits solutions */

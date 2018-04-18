@@ -29,15 +29,56 @@ std::string requestWebsocketURI(const std::string &url, bool verbose) {
 	}
 }
 
+class SubmitState {
+public:
+	SubmitState() = default;
+
+	SubmitState(const SubmitState &) = delete;
+
+	SubmitState &operator=(const SubmitState &) = delete;
+
+	/** Set the solution, blocking until the previous one has been processed */
+	void setSolution(kristforge::Solution s) {
+		std::unique_lock lock(mtx);
+		if (solution) cv.wait(lock, [&] { return !solution; });
+		solution = s;
+	};
+
+	/** Gets the current solution */
+	std::optional<kristforge::Solution> getSolutionImmediately() {
+		std::lock_guard lock(mtx);
+		return solution;
+	}
+
+	/** Removes the solution and increments ID, allowing a new solution to be set */
+	void removeSolution() {
+		std::lock_guard lock(mtx);
+		solution.reset();
+		id++;
+		cv.notify_all();
+	}
+
+	/** ID of current submission */
+	long getID() {
+		std::lock_guard lock(mtx);
+		return id;
+	}
+
+private:
+	std::mutex mtx;
+	std::condition_variable cv;
+	std::optional<kristforge::Solution> solution;
+	long id = 1;
+};
+
 void kristforge::network::run(const std::string &node, const std::shared_ptr<kristforge::State> &state, Options opts) {
 	using namespace uWS;
 
 	Hub hub;
 	auto *const hubClient = dynamic_cast<Group<false> *>(&hub);
 
-	std::mutex submitMtx;
-	std::optional<long> submitWaitingID;
-	std::condition_variable submitCV;
+	// used to synchronize submission state
+	SubmitState submit;
 
 	hub.onConnection([&](WebSocket<false> *ws, const HttpRequest &req) {
 		if (opts.onConnect) (*opts.onConnect)();
@@ -45,37 +86,56 @@ void kristforge::network::run(const std::string &node, const std::shared_ptr<kri
 
 	hub.onDisconnection([&](WebSocket<false> *ws, int code, char *msg, size_t length) {
 		state->unsetTarget();
+		submit.removeSolution();
 		if (opts.onDisconnect) (*opts.onDisconnect)(opts.autoReconnect);
 		if (opts.autoReconnect) hub.connect(requestWebsocketURI(node, opts.verbose));
 	});
 
 	hub.onMessage([&](WebSocket<false> *ws, char *msg, size_t length, OpCode op) {
 		std::cout << std::string(msg, length) << std::endl;
+
+		Json::Value root;
+		std::istringstream(std::string(msg, length)) >> root;
+
+		if (root["id"].isNumeric() && root["id"].asInt64() == submit.getID()) {
+			// block submission reply - contains mining info
+			if (root["ok"].asBool()) {
+				if (opts.onSolved) (*opts.onSolved)(*submit.getSolutionImmediately());
+				state->setTarget(kristforge::Target(root["block"]["short_hash"].asString(), root["work"].asInt64()));
+			} else {
+				if (opts.onRejected) (*opts.onRejected)(*submit.getSolutionImmediately(), root["error"].asString());
+			}
+
+			submit.removeSolution();
+		} else if (root["type"] == "hello") {
+			// hello packet - sent on first connect, contains mining info
+			state->setTarget(kristforge::Target(root["last_block"]["short_hash"].asString(), root["work"].asInt64()));
+		} else if (root["type"] == "event" && root["event"] == "block") {
+			// block event - sent when any block is mined, contains mining info
+			state->setTarget(kristforge::Target(root["block"]["short_hash"].asString(), root["new_work"].asInt64()));
+		}
 	});
 
 	// register solution callback using an Async so that it's called on this thread
 	std::function<void(uS::Async *)> onSolution = [&](uS::Async *a) {
-		std::optional<Solution> solution = state->popSolutionImmediately();
+		std::optional<Solution> solution = submit.getSolutionImmediately();
 
-		if (solution) {
-			static long id = 1;
-			static Json::StreamWriter *writer = Json::StreamWriterBuilder().newStreamWriter();
+		if (!solution) return;
 
-			Json::Value root;
-			root["type"] = "submit_block";
-			root["id"] = id;
-			root["address"] = solution->address;
-			root["nonce"] = solution->nonce;
+		static Json::StreamWriter *writer = Json::StreamWriterBuilder().newStreamWriter();
 
-			std::ostringstream ss;
-			writer->write(root, &ss);
+		Json::Value root;
+		root["type"] = "submit_block";
+		root["id"] = submit.getID();
+		root["address"] = solution->address;
+		root["nonce"] = solution->nonce;
 
-			hubClient->broadcast(ss.str().data(), ss.str().size(), TEXT);
+		std::ostringstream ss;
+		writer->write(root, &ss);
 
-			if (opts.onSubmitted) (*opts.onSubmitted)(*solution);
+		hubClient->broadcast(ss.str().data(), ss.str().size(), TEXT);
 
-			id++;
-		}
+		if (opts.onSubmitted) (*opts.onSubmitted)(*solution);
 	};
 
 	uS::Async solutionAsync(hub.getLoop());
@@ -85,13 +145,7 @@ void kristforge::network::run(const std::string &node, const std::shared_ptr<kri
 	// start a new thread that triggers the Async
 	std::thread solutionChecker([&] {
 		while (!state->isStopped()) {
-			{
-				// block if we're already waiting for a reply about a solution to prevent spam
-				std::unique_lock lock(submitMtx);
-				if (submitWaitingID) submitCV.wait(lock, [&] { return !submitWaitingID; });
-			}
-
-			state->waitForSolution();
+			submit.setSolution(state->popSolution());
 			solutionAsync.send();
 		}
 	});

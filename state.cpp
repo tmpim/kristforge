@@ -61,14 +61,6 @@ std::optional<kristforge::Solution> kristforge::State::popSolutionImmediately() 
 	}
 }
 
-void kristforge::State::waitForSolution() {
-	std::unique_lock lock(solutionMutex);
-
-	if (solutions.empty()) {
-		solutionCV.wait(lock, [&] { return !solutions.empty(); });
-	}
-}
-
 kristforge::Solution kristforge::State::popSolution() {
 	std::unique_lock<std::mutex> lock(solutionMutex);
 

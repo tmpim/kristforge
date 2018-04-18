@@ -5,6 +5,7 @@
 #include <optional>
 #include <atomic>
 #include <queue>
+#include <iostream>
 
 namespace kristforge {
 	/** A target to mine for */
@@ -28,6 +29,11 @@ namespace kristforge {
 		/** Compares two targets for inequality */
 		inline bool operator!=(const Target &other) { return prevBlock != other.prevBlock || work != other.work; }
 	};
+
+	inline std::ostream &operator<<(std::ostream &os, const Target &tgt) {
+		os << "Target (block " << tgt.prevBlock << " work " << std::to_string(tgt.work) << ")";
+		return os;
+	}
 
 	/** A solution for a specific target */
 	struct Solution {
@@ -88,9 +94,6 @@ namespace kristforge {
 
 		/** Pops the first solution immediately, regardless of whether one's available or not */
 		std::optional<Solution> popSolutionImmediately();
-
-		/** Blocks until a solution becomes available */
-		void waitForSolution();
 
 		/** Pops the first solution off of the queue, blocking until one is available if necessary */
 		Solution popSolution();

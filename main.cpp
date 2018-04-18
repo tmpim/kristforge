@@ -3,13 +3,7 @@
 
 #include "network.h"
 
-extern const char _binary_kristforge_cl_start, _binary_kristforge_cl_end;
-
 int main() {
-	std::string cl(&_binary_kristforge_cl_start, &_binary_kristforge_cl_end - &_binary_kristforge_cl_start);
-
-	std::cout << cl << std::endl;
-
 	kristforge::network::Options opts;
 	opts.verbose = true;
 

@@ -16,7 +16,7 @@ FUNCTION(ADD_RESOURCES out_var)
 				COMMAND ld -r -b binary -o ${out_f} ${src_f}
 				DEPENDS ${in_f}
 				WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-				COMMENT "Building GLSL object ${out_f}"
+				COMMENT "Building resource object ${out_f}"
 				VERBATIM
 				)
 		LIST(APPEND result ${out_f})

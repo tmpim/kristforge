@@ -1,0 +1,4 @@
+#pragma once
+
+#define CL_DEVICE_PCI_BUS_ID_NV 0x4008
+#define CL_DEVICE_PCI_SLOT_ID_NV 0x4009

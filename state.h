@@ -68,7 +68,9 @@ namespace kristforge {
 	/** A shared mining state, used to synchronize mining tasks */
 	class State {
 	public:
-		State() = default;
+		explicit State(std::string address) : address(std::move(address)) {
+			if (this->address.size() != 10) throw std::range_error("Address length must be 10");
+		}
 
 		State(const State &) = delete;
 
@@ -103,6 +105,9 @@ namespace kristforge {
 
 		/** Checks whether the stop flag is currently set */
 		inline bool isStopped() { return stopped; }
+
+		/** The krist address to mine for */
+		const std::string address;
 
 	private:
 		std::mutex targetMutex;

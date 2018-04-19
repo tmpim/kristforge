@@ -30,7 +30,7 @@ std::vector<cl::Device> kristforge::getAllDevices() {
 std::optional<std::string> kristforge::uniqueID(const cl::Device &dev) {
 	std::string exts = dev.getInfo<CL_DEVICE_EXTENSIONS>();
 
-	const char *fmt = "PCIE:%0.2x:%0.2x:%0.2d";
+	const char *fmt = "PCIE:%0.2x:%0.2x.%0.2d";
 	char out[] = "PCIE:00:00.0";
 
 	if (exts.find("cl_amd_device_attribute_query") != std::string::npos) {
@@ -39,7 +39,7 @@ std::optional<std::string> kristforge::uniqueID(const cl::Device &dev) {
 
 		if (status == CL_SUCCESS && topo.raw.type == CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD) {
 			snprintf(out, sizeof(out), fmt, topo.pcie.bus, topo.pcie.device, topo.pcie.function);
-			return std::string(out, sizeof(out));
+			return std::string(out);
 		}
 	} else if (exts.find("cl_nv_device_attribute_query") != std::string::npos) {
 		cl_uint bus, slot;
@@ -48,7 +48,7 @@ std::optional<std::string> kristforge::uniqueID(const cl::Device &dev) {
 		    clGetDeviceInfo(dev(), CL_DEVICE_PCI_SLOT_ID_NV, sizeof(slot), &slot, nullptr) == CL_SUCCESS) {
 
 			snprintf(out, sizeof(out), fmt, bus, slot, 0);
-			return std::string(out, sizeof(out));
+			return std::string(out);
 		}
 	}
 

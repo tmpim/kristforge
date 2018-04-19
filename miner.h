@@ -79,7 +79,7 @@ namespace kristforge {
 	inline std::ostream &operator<<(std::ostream &os, const Miner &m) {
 		return os << "Miner " << m.dev.getInfo<CL_DEVICE_NAME>().data()
 		          << " (score " << std::to_string(scoreDevice(m.dev))
-		          << " id " << uniqueID(m.dev).value_or("n/a")
+		          << " id " << uniqueID(m.dev).value_or("n/a").data()
 		          << " " << m.opts << ")";
 	}
 }

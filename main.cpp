@@ -76,6 +76,7 @@ int main(int argc, char **argv) {
 	TCLAP::SwitchArg onlyTestArg("t", "only-test", "Run tests on selected miners and then exit", cmd);
 	TCLAP::ValueArg<std::string> clCompilerArg("", "cl-opts", "Extra options for the OpenCL compiler", false, "", "options", cmd);
 	TCLAP::MultiSwitchArg verboseArg("v", "verbose", "Enable extra logging (can be repeated up to two times)", cmd);
+	TCLAP::ValueArg<int> exitAfterArg("", "exit-after", "Stop after mining for given number of seconds", false, 0, "seconds", cmd);
 	// @formatter:on
 
 	cmd.parse(argc, argv);
@@ -208,6 +209,15 @@ int main(int argc, char **argv) {
 		netOpts.onSubmitted = [](kristforge::Solution s) {
 			std::cout << "Submitting solution (nonce " << s.nonce << ")" << std::endl;
 		};
+	}
+
+	if (exitAfterArg.isSet()) {
+		std::thread exitThread([&] {
+			std::this_thread::sleep_for(std::chrono::seconds(exitAfterArg.getValue()));
+			std::cout << "Stopping" << std::endl;
+			exit(0);
+		});
+		exitThread.detach();
 	}
 
 	// run networking

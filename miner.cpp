@@ -138,7 +138,7 @@ std::string sha256hex(const std::string &data) {
 long scoreHash(const std::string &hash) {
 	const auto *raw = reinterpret_cast<const unsigned char *>(hash.data());
 
-	return raw[5] + (raw[4] << 8) + (raw[3] << 16) + (raw[2] << 24) + ((long) raw[1] << 32) + ((long) raw[0] << 40);
+	return ((long)raw[5]) + (((long)raw[4]) << 8) + (((long)raw[3]) << 16) + (((long)raw[2]) << 24) + (((long) raw[1]) << 32) + (((long) raw[0]) << 40);
 }
 
 /** Throw an exception if given inputs aren't equal */
@@ -196,9 +196,10 @@ void kristforge::Miner::runTests() {
 	for (int i = 0; i < vs; i++) {
 		std::string clHash(32, ' ');
 		for (int j = 0; j < clHash.size(); j++) clHash[j] = hashOutputData[vs * j + i];
+		std::string expectedHash = sha256hex(testInputs[i]);
 
-		assertEquals(sha256hex(testInputs[i]), toHex(clHash), "testDigest55 failed for input " + testInputs[i]);
-		assertEquals(scoreHash(clHash), scoreOutputData[i], "testScore failed for input " + testInputs[i]);
+		assertEquals(expectedHash, toHex(clHash), "testDigest55 failed for input " + testInputs[i]);
+		assertEquals(scoreHash(clHash), scoreOutputData[i], "testScore failed for input " + testInputs[i] + " (hash " + expectedHash + ")");
 	}
 }
 

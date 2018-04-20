@@ -108,11 +108,11 @@ int main(int argc, char **argv) {
 	}
 
 	for (const int n : deviceNumsArg.getValue()) {
-		if (n >= allDevs.size()) {
+		if (n > allDevs.size()) {
 			throw std::range_error("Value out of range:" + n);
 		}
 
-		selectedDevices.push_back(allDevs[n + 1]);
+		selectedDevices.push_back(allDevs[n - 1]);
 	}
 
 	std::cout << std::to_string(selectedDevices.size()) << " device(s) selected" << std::endl;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "state.h"
+
 #include <memory>
 #include <functional>
 

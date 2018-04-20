@@ -1,9 +1,10 @@
 #include "miner.h"
+#include "cl_amd.h"
+#include "cl_nv.h"
 
 #include <string>
 #include <sstream>
-#include "cl_amd.h"
-#include "cl_nv.h"
+#include <openssl/sha.h>
 
 extern const char _binary_kristforge_cl_start, _binary_kristforge_cl_end;
 static const std::string clSource(&_binary_kristforge_cl_start,
@@ -65,8 +66,12 @@ kristforge::Miner::Miner(cl::Device dev, kristforge::MinerOptions opts) :
 		dev(std::move(dev)),
 		opts(std::move(opts)),
 		ctx(cl::Context(this->dev)),
-		queue(cl::CommandQueue(this->ctx, this->dev)),
+		cmd(cl::CommandQueue(this->ctx, this->dev)),
 		program(this->ctx, clSource) {}
+
+unsigned short kristforge::Miner::vecsize() {
+	return opts.vecsize.value_or(dev.getInfo<CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR>());
+}
 
 void kristforge::Miner::ensureProgramBuilt() {
 	if (program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(dev) == CL_BUILD_NONE) {
@@ -74,7 +79,7 @@ void kristforge::Miner::ensureProgramBuilt() {
 		std::ostringstream args;
 
 		// vector type size
-		args << "-D VECSIZE=" << opts.vecsize.value_or(dev.getInfo<CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR>()) << " ";
+		args << "-D VECSIZE=" << vecsize() << " ";
 
 		// custom extra compiler flags
 		args << opts.extraOpts;
@@ -96,9 +101,105 @@ void kristforge::Miner::ensureProgramBuilt() {
 	}
 }
 
+static const char hex[] = "0123456789abcdef";
+
+/** Convert binary data to hex representation */
+std::string toHex(const unsigned char *data, size_t len) {
+	std::string output;
+
+	for (int i = 0; i < len; i++) {
+		output += hex[data[i] >> 4];
+		output += hex[data[i] & 0xf];
+	}
+
+	return output;
+}
+
+/** Convert binary string to hex representation */
+std::string toHex(const std::string &input) {
+	std::string output;
+
+	for (const unsigned char c : input) {
+		output += hex[c >> 4];
+		output += hex[c & 0xf];
+	}
+
+	return output;
+}
+
+/** Compute sha256 and return hex representation */
+std::string sha256hex(const std::string &data) {
+	unsigned char hashed[SHA256_DIGEST_LENGTH];
+	SHA256(reinterpret_cast<const unsigned char *>(data.data()), data.size(), hashed);
+	return toHex(hashed, SHA256_DIGEST_LENGTH);
+}
+
+/** Calculate the score for a given hash */
+long scoreHash(const std::string &hash) {
+	const auto *raw = reinterpret_cast<const unsigned char *>(hash.data());
+
+	return raw[5] + (raw[4] << 8) + (raw[3] << 16) + (raw[2] << 24) + ((long) raw[1] << 32) + ((long) raw[0] << 40);
+}
+
+/** Throw an exception if given inputs aren't equal */
+template<typename T>
+void assertEquals(const T &expected, const T &got, const std::string &message) {
+	if (!(expected == got)) {
+		std::ostringstream msgStream;
+		msgStream << message << " - got " << got << ", expected " << expected;
+		throw std::runtime_error(msgStream.str());
+	}
+}
+
+/** Input strings for OpenCL tests */
+const std::string testInputs[16] = {"abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwx", "yzA", "BCD", // NOLINT
+                                    "EFG", "HIJ", "KLM", "NOP", "QRS", "TUV"};
 
 void kristforge::Miner::runTests() {
 	ensureProgramBuilt();
+
+	cl::Kernel testDigest55(program, "testDigest55");
+	cl::Kernel testScore(program, "testScore");
+	int vs = vecsize();
+
+	// init data arrays
+	unsigned char hashInputData[64 * vs] = {0}, hashOutputData[32 * vs] = {0};
+	long scoreOutputData[vs] = {0};
+
+	// interleave data according to vector size
+	for (int i = 0; i < vs; i++) {
+		std::string s = testInputs[i];
+		for (int j = 0; j < s.size(); j++) hashInputData[vs * j + i] = static_cast<unsigned char>(s[j]);
+	}
+
+	// init OpenCL buffers
+	cl::Buffer hashInput(ctx, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, sizeof(hashInputData));
+	cl::Buffer hashOutput(ctx, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY, sizeof(hashOutputData));
+	cl::Buffer scoreOutput(ctx, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY, sizeof(scoreOutputData));
+
+	// set kernel args
+	testDigest55.setArg(0, hashInput);
+	testDigest55.setArg(1, 3);
+	testDigest55.setArg(2, hashOutput);
+	testScore.setArg(0, hashOutput);
+	testScore.setArg(1, scoreOutput);
+
+	// enqueue actions
+	cmd.enqueueWriteBuffer(hashInput, CL_FALSE, 0, sizeof(hashInputData), hashInputData);
+	cmd.enqueueTask(testDigest55);
+	cmd.enqueueTask(testScore);
+	cmd.enqueueReadBuffer(hashOutput, CL_FALSE, 0, sizeof(hashOutputData), hashOutputData);
+	cmd.enqueueReadBuffer(scoreOutput, CL_FALSE, 0, sizeof(scoreOutputData), scoreOutputData);
+	cmd.finish();
+
+	// deinterleave and verify results
+	for (int i = 0; i < vs; i++) {
+		std::string clHash(32, ' ');
+		for (int j = 0; j < clHash.size(); j++) clHash[j] = hashOutputData[vs * j + i];
+
+		assertEquals(sha256hex(testInputs[i]), toHex(clHash), "testDigest55 failed for input " + testInputs[i]);
+		assertEquals(scoreHash(clHash), scoreOutputData[i], "testScore failed for input " + testInputs[i]);
+	}
 }
 
 void kristforge::Miner::run(std::shared_ptr<kristforge::State> state) {

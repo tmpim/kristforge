@@ -39,6 +39,11 @@ target_link_libraries(kristforge PRIVATE Threads::Threads)
 find_package(TCLAP REQUIRED)
 target_include_directories(kristforge PRIVATE ${TCLAP_INCLUDE_DIR})
 
+find_package(OpenSSL REQUIRED)
+target_include_directories(kristforge PRIVATE ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(kristforge PRIVATE ${OPENSSL_SSL_LIBRARY})
+target_link_libraries(kristforge PRIVATE ${OPENSSL_CRYPTO_LIBRARY})
+
 pkg_check_modules(CURLPP REQUIRED curlpp)
 target_link_libraries(kristforge PRIVATE ${CURLPP_LDFLAGS})
 
@@ -50,10 +55,6 @@ find_library(UWEBSOCKETS_LIBRARIES uWS)
 target_include_directories(kristforge PRIVATE ${UWEBSOCKETS_INCLUDE_DIRS})
 target_link_libraries(kristforge PRIVATE ${UWEBSOCKETS_LIBRARIES})
 
-# dependencies of uwebsockets
+# dependency of uwebsockets
 find_package(ZLIB REQUIRED)
 target_link_libraries(kristforge PRIVATE ${ZLIB_LIBRARIES})
-
-find_package(OpenSSL REQUIRED)
-target_link_libraries(kristforge PRIVATE ${OPENSSL_SSL_LIBRARY})
-target_link_libraries(kristforge PRIVATE ${OPENSSL_CRYPTO_LIBRARY})

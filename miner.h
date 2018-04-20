@@ -47,7 +47,8 @@ namespace kristforge {
 	inline std::ostream &operator<<(std::ostream &os, const MinerOptions &opts) {
 		return os << "MinerOptions (prefix " << opts.prefix
 		          << " worksize " << (opts.worksize ? std::to_string(*opts.worksize) : "auto")
-		          << " vecsize " << (opts.vecsize ? std::to_string(*opts.vecsize) : "auto") << ")";
+		          << " vecsize " << (opts.vecsize ? std::to_string(*opts.vecsize) : "auto")
+		          << " compiler args \"" << opts.extraOpts << "\")";
 	}
 
 	/** An OpenCL miner */
@@ -62,12 +63,15 @@ namespace kristforge {
 		/** Runs the miner synchronously using the given state */
 		void run(std::shared_ptr<State> state);
 
+		/** The vector size set by the miner options or OpenCL device preference */
+		unsigned short vecsize();
+
 	private:
 		const cl::Device dev;
 		const MinerOptions opts;
 
 		const cl::Context ctx;
-		const cl::CommandQueue queue;
+		const cl::CommandQueue cmd;
 		const cl::Program program;
 
 		/** If the OpenCL program hasn't been built yet, build it now */

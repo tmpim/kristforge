@@ -1,3 +1,6 @@
+#include "network.h"
+#include "miner.h"
+
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -5,9 +8,6 @@
 #include <algorithm>
 #include <random>
 #include <tclap/CmdLine.h>
-
-#include "network.h"
-#include "miner.h"
 
 class AddressConstraint : public TCLAP::Constraint<std::string> {
 public:
@@ -63,6 +63,7 @@ int main(int argc, char **argv) {
 	TCLAP::ValueArg<int> vecsizeArg("V", "vector-width", "Manually set vector width for all devices", false, 1, "1 | 2 | 4 | 8 | 16", cmd);
 	TCLAP::ValueArg<size_t> worksizeArg("w", "worksize", "Manually set work group size for all devices", false, 1, "size", cmd);
 	TCLAP::SwitchArg onlyTestArg("t", "only-test", "Run tests on selected miners and then exit", cmd);
+	TCLAP::ValueArg<std::string> clCompilerArg("", "cl-opts", "Extra options for the OpenCL compiler", false, "", "options", cmd);
 	// @formatter:on
 
 	cmd.parse(argc, argv);
@@ -128,7 +129,8 @@ int main(int argc, char **argv) {
 		kristforge::MinerOptions opts(
 				generatePrefix(), // prefix
 				worksizeArg.isSet() ? std::optional(worksizeArg.getValue()) : std::nullopt,
-				vecsizeArg.isSet() ? std::optional(vecsizeArg.getValue()) : std::nullopt);
+				vecsizeArg.isSet() ? std::optional(vecsizeArg.getValue()) : std::nullopt,
+				clCompilerArg.getValue());
 
 		kristforge::Miner m(d, opts);
 		miners.push_back(m);

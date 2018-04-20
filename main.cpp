@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
 		while (!state->isStopped()) {
 			long completed = state->hashesCompleted;
 			std::this_thread::sleep_for(std::chrono::seconds(3));
-			std::cout << formatHashrate(state->hashesCompleted - completed) << std::endl;
+			std::cout << formatHashrate((state->hashesCompleted - completed) / 3) << std::endl;
 		}
 	});
 	status.detach();

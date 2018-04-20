@@ -1,10 +1,10 @@
 #include "miner.h"
 #include "cl_amd.h"
 #include "cl_nv.h"
+#include "utils.h"
 
 #include <string>
-#include <sstream>
-#include <openssl/sha.h>
+#include <numeric>
 
 extern const char _binary_kristforge_cl_start, _binary_kristforge_cl_end;
 static const std::string clSource(&_binary_kristforge_cl_start,
@@ -73,6 +73,13 @@ unsigned short kristforge::Miner::vecsize() {
 	return opts.vecsize.value_or(dev.getInfo<CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR>());
 }
 
+size_t kristforge::Miner::worksize() {
+	if (opts.worksize) return *opts.worksize;
+
+	std::vector<size_t> sizes = dev.getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>();
+	return std::accumulate(sizes.begin(), sizes.end(), (size_t) 1, [](size_t a, size_t b) { return a * b; });
+}
+
 void kristforge::Miner::ensureProgramBuilt() {
 	if (program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(dev) == CL_BUILD_NONE) {
 		// first, get compiler options
@@ -101,54 +108,11 @@ void kristforge::Miner::ensureProgramBuilt() {
 	}
 }
 
-static const char hex[] = "0123456789abcdef";
-
-/** Convert binary data to hex representation */
-std::string toHex(const unsigned char *data, size_t len) {
-	std::string output;
-
-	for (int i = 0; i < len; i++) {
-		output += hex[data[i] >> 4];
-		output += hex[data[i] & 0xf];
-	}
-
-	return output;
-}
-
-/** Convert binary string to hex representation */
-std::string toHex(const std::string &input) {
-	std::string output;
-
-	for (const unsigned char c : input) {
-		output += hex[c >> 4];
-		output += hex[c & 0xf];
-	}
-
-	return output;
-}
-
-/** Compute sha256 and return hex representation */
-std::string sha256hex(const std::string &data) {
-	unsigned char hashed[SHA256_DIGEST_LENGTH];
-	SHA256(reinterpret_cast<const unsigned char *>(data.data()), data.size(), hashed);
-	return toHex(hashed, SHA256_DIGEST_LENGTH);
-}
-
 /** Calculate the score for a given hash */
 long scoreHash(const std::string &hash) {
 	const auto *raw = reinterpret_cast<const unsigned char *>(hash.data());
 
 	return ((long)raw[5]) + (((long)raw[4]) << 8) + (((long)raw[3]) << 16) + (((long)raw[2]) << 24) + (((long) raw[1]) << 32) + (((long) raw[0]) << 40);
-}
-
-/** Throw an exception if given inputs aren't equal */
-template<typename T>
-void assertEquals(const T &expected, const T &got, const std::string &message) {
-	if (!(expected == got)) {
-		std::ostringstream msgStream;
-		msgStream << message << " - got " << got << ", expected " << expected;
-		throw std::runtime_error(msgStream.str());
-	}
 }
 
 /** Input strings for OpenCL tests */
@@ -205,4 +169,62 @@ void kristforge::Miner::runTests() {
 
 void kristforge::Miner::run(std::shared_ptr<kristforge::State> state) {
 	ensureProgramBuilt();
+
+	cl::Kernel miner(program, "kristMiner");
+
+	unsigned short vs = vecsize();
+	size_t ws = worksize();
+
+	// init buffers
+	cl::Buffer addressBuf(ctx, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, 10);
+	cl::Buffer blockBuf(ctx, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, 12);
+	cl::Buffer prefixBuf(ctx, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, 2);
+	cl::Buffer solutionBuf(ctx, CL_MEM_WRITE_ONLY, 15);
+
+	// set buffer args
+	miner.setArg(0, addressBuf);
+	miner.setArg(1, blockBuf);
+	miner.setArg(2, prefixBuf);
+	miner.setArg(5, solutionBuf);
+
+	// copy address/prefix
+	cmd.enqueueWriteBuffer(addressBuf, CL_FALSE, 0, 10, state->address.data());
+	cmd.enqueueWriteBuffer(prefixBuf, CL_FALSE, 0, 2, opts.prefix.data());
+	cmd.flush();
+
+	while (!state->isStopped()) {
+		kristforge::Target target = state->getTarget();
+
+		// copy block buffer, blank solution buffer
+		cmd.enqueueWriteBuffer(blockBuf, CL_FALSE, 0, 12, target.prevBlock.data());
+		cmd.enqueueFillBuffer(solutionBuf, (cl_uchar) 0, 0, 15);
+		cmd.flush();
+
+		// set work
+		miner.setArg(4, target.work);
+
+		unsigned char solutionNonce[15] = {0};
+
+		for (cl_long offset = 1; state->getTargetNow() == target; offset += ws * vs) {
+			// set offset
+			miner.setArg(3, offset);
+
+			// run kernel and get results
+			cmd.enqueueNDRangeKernel(miner, 0, ws);
+			cmd.enqueueReadBuffer(solutionBuf, CL_FALSE, 0, 15, solutionNonce);
+			cmd.finish();
+
+			if (solutionNonce[0] != 0) {
+				// submit solution
+				kristforge::Solution solution(target, state->address, mkString(solutionNonce, 15));
+				state->pushSolution(solution);
+
+				// clear solution buffer
+				cmd.enqueueFillBuffer(solutionBuf, (cl_uchar) 0, 0, 15);
+				cmd.flush();
+			}
+
+			state->hashesCompleted += ws * vs;
+		}
+	}
 }

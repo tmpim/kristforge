@@ -24,15 +24,14 @@ namespace kristforge {
 		long work;
 
 		/** Compares two targets for equality */
-		inline bool operator==(const Target &other) { return prevBlock == other.prevBlock && work == other.work; }
+		inline bool operator==(const Target &other) const { return prevBlock == other.prevBlock && work == other.work; }
 
 		/** Compares two targets for inequality */
-		inline bool operator!=(const Target &other) { return prevBlock != other.prevBlock || work != other.work; }
+		inline bool operator!=(const Target &other) const { return prevBlock != other.prevBlock || work != other.work; }
 	};
 
 	inline std::ostream &operator<<(std::ostream &os, const Target &tgt) {
-		os << "Target (block " << tgt.prevBlock << " work " << std::to_string(tgt.work) << ")";
-		return os;
+		return os << "Target (block " << tgt.prevBlock << " work " << std::to_string(tgt.work) << ")";
 	}
 
 	/** A solution for a specific target */
@@ -50,20 +49,24 @@ namespace kristforge {
 		/** The nonce of this solution */
 		std::string nonce;
 
-		/** Compares two targets for equality */
-		inline bool operator==(const Solution &other) {
+		/** Compares two solutions for equality */
+		inline bool operator==(const Solution &other) const {
 			return target == other.target &&
 			       address == other.address &&
 			       nonce == other.nonce;
 		}
 
-		/** Compares two targets for inequality */
-		inline bool operator!=(const Solution &other) {
+		/** Compares two solutions for inequality */
+		inline bool operator!=(const Solution &other) const {
 			return target != other.target ||
 			       address != other.address ||
 			       nonce != other.nonce;
 		}
 	};
+
+	inline std::ostream &operator<<(std::ostream &os, const Solution &sol) {
+		return os << "Solution (address " << sol.address << " nonce " << sol.nonce << " " << sol.target << ")";
+	}
 
 	/** A shared mining state, used to synchronize mining tasks */
 	class State {
@@ -108,6 +111,9 @@ namespace kristforge {
 
 		/** The krist address to mine for */
 		const std::string address;
+
+		/** Total hashes evaluated */
+		std::atomic<long> hashesCompleted;
 
 	private:
 		std::mutex targetMutex;

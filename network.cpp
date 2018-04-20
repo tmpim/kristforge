@@ -15,6 +15,7 @@ std::string requestWebsocketURI(const std::string &url, bool verbose) {
 
 	req.setOpt(new curlpp::options::Url(url));
 	req.setOpt(new curlpp::options::Post(true));
+	req.setOpt(new curlpp::options::Verbose(verbose));
 
 	std::stringstream stream;
 	stream << req;
@@ -92,7 +93,7 @@ void kristforge::network::run(const std::string &node, const std::shared_ptr<kri
 	});
 
 	hub.onMessage([&](WebSocket<false> *ws, char *msg, size_t length, OpCode op) {
-		std::cout << std::string(msg, length) << std::endl;
+		if (opts.verbose) std::cout << std::string(msg, length) << std::endl;
 
 		Json::Value root;
 		std::istringstream(std::string(msg, length)) >> root;
@@ -100,7 +101,7 @@ void kristforge::network::run(const std::string &node, const std::shared_ptr<kri
 		if (root["id"].isNumeric() && root["id"].asInt64() == submit.getID()) {
 			// block submission reply - contains mining info
 			if (root["ok"].asBool()) {
-				if (opts.onSolved) (*opts.onSolved)(*submit.getSolutionImmediately());
+				if (opts.onSolved) (*opts.onSolved)(*submit.getSolutionImmediately(), root["block"]["height"].asInt64());
 				state->setTarget(kristforge::Target(root["block"]["short_hash"].asString(), root["work"].asInt64()));
 			} else {
 				if (opts.onRejected) (*opts.onRejected)(*submit.getSolutionImmediately(), root["error"].asString());
@@ -149,8 +150,6 @@ void kristforge::network::run(const std::string &node, const std::shared_ptr<kri
 			solutionAsync.send();
 		}
 	});
-
-	std::cout << std::this_thread::get_id() << std::endl;
 
 	hub.connect(requestWebsocketURI(node, opts.verbose));
 	hub.run();

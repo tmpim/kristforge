@@ -197,14 +197,67 @@ __constant union {
 	LONGV vec;
 } nonceOffset = { .scalars = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }};
 
+__constant uchar hex[16] = "0123456789abcdef";
+
+union vectorExtractor {
+	UCHARV vector;
+	uchar components[VECSIZE];
+};
+
 __kernel
 __attribute__((vec_type_hint(UINTV)))
-void krist_miner(
+void kristMiner(
 		__global const uchar *kristAddress,         // 10 bytes
 		__global const uchar *block,                // 12 bytes
 		__global const uchar *prefix,               // 2 bytes
-		const long work,
-		__global uchar *solution) {                 // 16 bytes
+		const long offset,
+		const long work,                            // convert to 13 bytes
+		__global uchar *solution) {                  // 15 bytes (prefix + nonce)
 
-	size_t nonce = get_global_id(0) * VECSIZE + get_global_offset(0);
+	// TODO: figure out why this is slower?
+	const LONGV nonce = nonceOffset.vec + (LONGV)(get_global_id(0) * VECSIZE + offset);
+
+	UCHARV input[64] = {0}, hashed[32] = {0};
+
+#pragma unroll
+	for (int i = 0; i < 10; i++) input[i] = kristAddress[i];
+
+#pragma unroll
+	for (int i = 0; i < 12; i++) input[i+10] = block[i];
+
+#pragma unroll
+	for (int i = 0; i < 2; i++) input[i+22] = prefix[i];
+
+#pragma unroll
+	for (int i = 0; i < 13; i++) input[i+24] = CONVERT(UCHARV, ((nonce >> (i * 5)) & 0b11111) + 48);
+
+	digest55(input, 37, hashed);
+
+	LONGV score = score_hash(hashed);
+
+#if VECSIZE == 1
+	if (score < work) {
+#pragma unroll
+		for (int i = 0; i < 15; i++) {
+			solution[i] = input[i+22];
+		}
+	}
+#else
+	if (any(score < work)) {
+#pragma unroll
+		for (int i = 0; i < VECSIZE; i++) {
+			union vectorExtractor *hash = (union vectorExtractor*) hashed;
+
+			uchar start[6] = {0};
+
+#pragma unroll
+			for (int j = 0; j < 6; j++) start[j] = hash[j].components[i];
+
+			if (score_hash_scalar(start) < work) {
+#pragma unroll
+				for (int k = 0; k < 15; k++) solution[k] = ((union vectorExtractor)input[22 + k]).components[i];
+			}
+		}
+	}
+#endif
 }

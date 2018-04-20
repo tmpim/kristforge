@@ -26,7 +26,7 @@ ENDFUNCTION()
 
 ADD_RESOURCES(CL_SOURCE kristforge.cl)
 
-add_executable(kristforge main.cpp state.cpp state.h network.cpp network.h ${CL_SOURCE} miner.cpp miner.h cl_amd.h cl_nv.h)
+add_executable(kristforge main.cpp state.cpp state.h network.cpp network.h ${CL_SOURCE} miner.cpp miner.h cl_amd.h cl_nv.h utils.cpp utils.h)
 
 find_package(OpenCL REQUIRED)
 target_include_directories(kristforge PUBLIC ${OpenCL_INCLUDE_DIR})

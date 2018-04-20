@@ -49,6 +49,17 @@ std::string generatePrefix() {
 	return std::string(prefix);
 }
 
+std::string formatHashrate(long hashesPerSecond) {
+	static const char *suffixes[] = {"h/s", "kh/s", "Mh/s", "Gh/s", "Th/s"};
+
+	auto scale = std::max(0, static_cast<int>(0, log(hashesPerSecond) / log(1000)));
+	double value = hashesPerSecond / pow(1000, scale);
+
+	std::stringstream out;
+	out << std::fixed << std::setprecision(2) << value << " " << suffixes[scale];
+	return out.str();
+}
+
 int main(int argc, char **argv) {
 	TCLAP::CmdLine cmd("Mine krist using OpenCL devices");
 
@@ -64,6 +75,7 @@ int main(int argc, char **argv) {
 	TCLAP::ValueArg<size_t> worksizeArg("w", "worksize", "Manually set work group size for all devices", false, 1, "size", cmd);
 	TCLAP::SwitchArg onlyTestArg("t", "only-test", "Run tests on selected miners and then exit", cmd);
 	TCLAP::ValueArg<std::string> clCompilerArg("", "cl-opts", "Extra options for the OpenCL compiler", false, "", "options", cmd);
+	TCLAP::MultiSwitchArg verboseArg("v", "verbose", "Enable extra logging (can be repeated up to two times)", cmd);
 	// @formatter:on
 
 	cmd.parse(argc, argv);
@@ -143,6 +155,61 @@ int main(int argc, char **argv) {
 	}
 
 	std::cout << "Tests completed successfully" << std::endl;
-
 	if (onlyTestArg.isSet()) return 0;
+
+	// init state
+	std::shared_ptr<kristforge::State> state = std::make_shared<kristforge::State>(addressArg.getValue());
+
+	// start miners
+	for (kristforge::Miner &m : miners) {
+		std::thread t([&m, state] {
+			m.run(state);
+		});
+		t.detach();
+	}
+
+	// thread to show status
+	std::thread status([&, state] {
+		while (!state->isStopped()) {
+			long completed = state->hashesCompleted;
+			std::this_thread::sleep_for(std::chrono::seconds(3));
+			std::cout << formatHashrate(state->hashesCompleted - completed) << std::endl;
+		}
+	});
+	status.detach();
+
+	// init network options and callbacks
+	kristforge::network::Options netOpts;
+	netOpts.verbose = verboseArg.getValue() >= 2;
+	netOpts.autoReconnect = true;
+
+	netOpts.onConnect = [] {
+		std::cout << "Connected!" << std::endl;
+	};
+
+	netOpts.onDisconnect = [&state](bool reconnecting) {
+		if (reconnecting) {
+			std::cout << "Disconnected - trying to reconnect..." << std::endl;
+		} else {
+			std::cout << "Disconnected." << std::endl;
+			state->stop();
+		}
+	};
+
+	netOpts.onSolved = [](kristforge::Solution s, long height) {
+		std::cout << "Successfully mined block #" << height << " (nonce " << s.nonce << ")" << std::endl;
+	};
+
+	netOpts.onRejected = [](kristforge::Solution s, const std::string &message) {
+		std::cout << "Solution (nonce " << s.nonce << ") rejected: " << message << std::endl;
+	};
+
+	if (verboseArg.isSet()) {
+		netOpts.onSubmitted = [](kristforge::Solution s) {
+			std::cout << "Submitting solution (nonce " << s.nonce << ")" << std::endl;
+		};
+	}
+
+	// run networking
+	kristforge::network::run(kristNode.getValue(), state, netOpts);
 }

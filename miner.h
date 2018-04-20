@@ -66,6 +66,8 @@ namespace kristforge {
 		/** The vector size set by the miner options or OpenCL device preference */
 		unsigned short vecsize();
 
+		size_t worksize();
+
 	private:
 		const cl::Device dev;
 		const MinerOptions opts;

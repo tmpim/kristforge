@@ -6,9 +6,8 @@
 #include <string>
 #include <numeric>
 
-extern const char _binary_kristforge_cl_start, _binary_kristforge_cl_end;
-static const std::string clSource(&_binary_kristforge_cl_start,
-                                  &_binary_kristforge_cl_end - &_binary_kristforge_cl_start);
+#include "kristforge.cl.xxd"
+static const std::string clSource(reinterpret_cast<const char*>(kristforge_cl), kristforge_cl_len);
 
 std::vector<cl::Device> kristforge::getAllDevices() {
 	std::vector<cl::Device> out;

@@ -7,26 +7,35 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-FUNCTION(ADD_RESOURCES out_var)
-	SET(result)
-	FOREACH(in_f ${ARGN})
-		FILE(RELATIVE_PATH src_f ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${in_f})
-		SET(out_f "${PROJECT_BINARY_DIR}/${in_f}.o")
-		ADD_CUSTOM_COMMAND(OUTPUT ${out_f}
-				COMMAND ld -r -b binary -o ${out_f} ${src_f}
-				DEPENDS ${in_f}
-				WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-				COMMENT "Building resource object ${out_f}"
-				VERBATIM
-				)
-		LIST(APPEND result ${out_f})
-	ENDFOREACH()
-	SET(${out_var} "${result}" PARENT_SCOPE)
-ENDFUNCTION()
+## Process Embeddeds ##
 
-ADD_RESOURCES(CL_SOURCE kristforge.cl)
+set(EMBEDDED_INPUT kristforge.cl)
+find_program(XXD_EXE xxd
+	DOC "Location of the xxd executable"
+)
 
-add_executable(kristforge main.cpp state.cpp state.h network.cpp network.h ${CL_SOURCE} miner.cpp miner.h cl_amd.h cl_nv.h utils.cpp utils.h)
+macro(ProcessWithXXD outvar inputfile outdir)
+	get_filename_component(basefile ${inputfile} NAME)
+	set(outputfile ${outdir}/${basefile}.xxd)
+	set_source_files_properties(${outputfile} PROPERTIES HEADER_ONLY TRUE)
+	add_custom_command(
+		OUTPUT ${outputfile}
+		COMMAND ${XXD_EXE} -i ${inputfile} ${outputfile}
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		DEPENDS ${inputfile}
+		COMMENT "Generating XXD for ${inputfile}"
+	)
+	list(APPEND ${outvar} ${outputfile})
+endmacro()
+
+foreach(item ${EMBEDDED_INPUT})
+	ProcessWithXXD(EMBEDDED_SOURCE ${item} ${CMAKE_CURRENT_BINARY_DIR})
+endforeach()
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+source_group("Embedded Source" FILES ${EMBEDDED_INPUT} ${EMBEDDED_SOURCE})
+
+add_executable(kristforge main.cpp state.cpp state.h network.cpp network.h ${EMBEDDED_SOURCE} miner.cpp miner.h cl_amd.h cl_nv.h utils.cpp utils.h)
 
 find_package(OpenCL REQUIRED)
 target_include_directories(kristforge PUBLIC ${OpenCL_INCLUDE_DIR})

@@ -47,6 +47,8 @@ std::string requestWebsocketURI(const std::string &url, bool verbose) {
 	} else {
 		throw std::runtime_error(root["error"].isString() ? root["error"].asString() : "unknown error");
 	}
+
+	curl_easy_cleanup(curl);
 }
 
 class SubmitState {

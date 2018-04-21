@@ -4,4 +4,4 @@ kristforge is an OpenCL-accelerated [krist](http://krist.ceriat.net/) miner, cap
 
 ## Building
 
-kristforge can be built with cmake. You'll need to have OpenCL, OpenSSL, [curlpp](http://www.curlpp.org/), [jsoncpp](https://github.com/open-source-parsers/jsoncpp), [tclap](http://tclap.sourceforge.net/) (only for compiling), and [uwebsockets](https://github.com/uNetworking/uWebSockets) installed. 
+kristforge can be built with cmake. You'll need to have OpenCL, OpenSSL, curl, [jsoncpp](https://github.com/open-source-parsers/jsoncpp), [tclap](http://tclap.sourceforge.net/) (only for compiling), and [uwebsockets](https://github.com/uNetworking/uWebSockets) installed. 

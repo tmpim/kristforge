@@ -3,22 +3,41 @@
 #include <sstream>
 #include <future>
 #include <chrono>
-#include <curlpp/cURLpp.hpp>
-#include <curlpp/Easy.hpp>
-#include <curlpp/Options.hpp>
+#include <curl/curl.h>
+#include <curl/easy.h>
 #include <json/json.h>
 #include <uWS/uWS.h>
 
+size_t curlWriteCallback(void *contents, size_t size, size_t nmemb, std::string *s) {
+	size_t newLength = size * nmemb;
+	size_t oldLength = s->size();
+	s->resize(oldLength + newLength);
+
+	std::copy((char *) contents, (char *) contents + newLength, s->begin() + oldLength);
+	return size * nmemb;
+}
+
+std::once_flag curl_init;
+
 std::string requestWebsocketURI(const std::string &url, bool verbose) {
-	curlpp::Cleanup cleanup;
-	curlpp::Easy req;
+	std::call_once(curl_init, [] { curl_global_init(CURL_GLOBAL_ALL); });
 
-	req.setOpt(new curlpp::options::Url(url));
-	req.setOpt(new curlpp::options::Post(true));
-	req.setOpt(new curlpp::options::Verbose(verbose));
+	CURL *curl = curl_easy_init();
 
-	std::stringstream stream;
-	stream << req;
+	if (!curl) throw std::runtime_error("curl_easy_init() failed");
+
+	std::string response;
+
+	curl_easy_setopt(curl, CURLOPT_URL, url.data());
+	curl_easy_setopt(curl, CURLOPT_POST, true);
+	curl_easy_setopt(curl, CURLOPT_VERBOSE, verbose);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteCallback);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+	CURLcode res = curl_easy_perform(curl);
+	if (res != CURLE_OK) throw std::runtime_error("curl_easy_perform() failed: " + res);
+
+	std::stringstream stream(response);
 
 	Json::Value root;
 	stream >> root;
@@ -101,7 +120,8 @@ void kristforge::network::run(const std::string &node, const std::shared_ptr<kri
 		if (root["id"].isNumeric() && root["id"].asInt64() == submit.getID()) {
 			// block submission reply - contains mining info
 			if (root["ok"].asBool()) {
-				if (opts.onSolved) (*opts.onSolved)(*submit.getSolutionImmediately(), root["block"]["height"].asInt64());
+				if (opts.onSolved)
+					(*opts.onSolved)(*submit.getSolutionImmediately(), root["block"]["height"].asInt64());
 				state->setTarget(kristforge::Target(root["block"]["short_hash"].asString(), root["work"].asInt64()));
 			} else {
 				if (opts.onRejected) (*opts.onRejected)(*submit.getSolutionImmediately(), root["error"].asString());

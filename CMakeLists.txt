@@ -44,8 +44,9 @@ target_include_directories(kristforge PRIVATE ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(kristforge PRIVATE ${OPENSSL_SSL_LIBRARY})
 target_link_libraries(kristforge PRIVATE ${OPENSSL_CRYPTO_LIBRARY})
 
-pkg_check_modules(CURLPP REQUIRED curlpp)
-target_link_libraries(kristforge PRIVATE ${CURLPP_LDFLAGS})
+find_package(CURL REQUIRED)
+target_include_directories(kristforge PRIVATE ${CURL_INCLUDE_DIR})
+target_link_libraries(kristforge PRIVATE ${CURL_LIBRARY})
 
 pkg_check_modules(JSONCPP jsoncpp)
 target_link_libraries(kristforge PRIVATE ${JSONCPP_LIBRARIES})

@@ -58,7 +58,7 @@ target_include_directories(kristforge PRIVATE ${CURL_INCLUDE_DIR})
 target_link_libraries(kristforge PRIVATE ${CURL_LIBRARY})
 
 pkg_check_modules(JSONCPP jsoncpp)
-target_include_directories(kristforge PRIVATE ${JSONCPP_INCLUDE_DIR})
+target_include_directories(kristforge PRIVATE ${JSONCPP_INCLUDEDIR})
 target_link_libraries(kristforge PRIVATE ${JSONCPP_LIBRARIES})
 
 find_path(UWEBSOCKETS_INCLUDE_DIRS uWS)

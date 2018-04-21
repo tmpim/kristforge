@@ -35,8 +35,9 @@ std::string requestWebsocketURI(const std::string &url, bool verbose) {
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
 	CURLcode res = curl_easy_perform(curl);
+	curl_easy_cleanup(curl);
 	if (res != CURLE_OK) throw std::runtime_error("curl_easy_perform() failed: " + res);
-
+	
 	std::stringstream stream(response);
 
 	Json::Value root;
@@ -47,8 +48,6 @@ std::string requestWebsocketURI(const std::string &url, bool verbose) {
 	} else {
 		throw std::runtime_error(root["error"].isString() ? root["error"].asString() : "unknown error");
 	}
-
-	curl_easy_cleanup(curl);
 }
 
 class SubmitState {

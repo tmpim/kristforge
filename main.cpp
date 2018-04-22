@@ -7,6 +7,7 @@
 #include <set>
 #include <algorithm>
 #include <random>
+#include <atomic>
 #include <tclap/CmdLine.h>
 
 class AddressConstraint : public TCLAP::Constraint<std::string> {
@@ -169,54 +170,64 @@ int main(int argc, char **argv) {
 		t.detach();
 	}
 
-	// thread to show status
-	std::thread status([&, state] {
-		while (!state->isStopped()) {
-			long completed = state->hashesCompleted;
-			std::this_thread::sleep_for(std::chrono::seconds(3));
-			std::cout << formatHashrate((state->hashesCompleted - completed) / 3) << std::endl;
-		}
-	});
-	status.detach();
-
 	// init network options and callbacks
 	kristforge::network::Options netOpts;
 	netOpts.verbose = verboseArg.getValue() >= 2;
 	netOpts.autoReconnect = true;
 
+	std::atomic<long> blocksMined = 0;
+	std::atomic<long> kstMined = 0;
+
 	netOpts.onConnect = [] {
-		std::cout << "Connected!" << std::endl;
+		std::cout << "\nConnected!" << std::endl;
 	};
 
 	netOpts.onDisconnect = [&state](bool reconnecting) {
 		if (reconnecting) {
-			std::cout << "Disconnected - trying to reconnect..." << std::endl;
+			std::cout << "\nDisconnected - trying to reconnect..." << std::endl;
 		} else {
-			std::cout << "Disconnected." << std::endl;
+			std::cout << "\nDisconnected, stopping miners and exiting" << std::endl;
 			state->stop();
 		}
 	};
 
-	netOpts.onSolved = [](kristforge::Solution s, long height, long value) {
-		std::cout << "Successfully mined block #" << height <<
+	netOpts.onSolved = [&](kristforge::Solution s, long height, long value) {
+		blocksMined++;
+		kstMined += value;
+
+		std::cout << "\nSuccessfully mined block #" << height <<
 		          " (nonce " << s.nonce <<
 		          ", value " << value << ")" << std::endl;
 	};
 
 	netOpts.onRejected = [](kristforge::Solution s, const std::string &message) {
-		std::cout << "Solution (nonce " << s.nonce << ") rejected: " << message << std::endl;
+		std::cout << "\nSolution (nonce " << s.nonce << ") rejected: " << message << std::endl;
 	};
 
 	if (verboseArg.isSet()) {
 		netOpts.onSubmitted = [](kristforge::Solution s) {
-			std::cout << "Submitting solution (nonce " << s.nonce << ")" << std::endl;
+			std::cout << "\nSubmitting solution (nonce " << s.nonce << ")" << std::endl;
 		};
 	}
+
+	// thread to show status
+	std::thread status([&, state] {
+		while (!state->isStopped()) {
+			long completed = state->hashesCompleted;
+			std::this_thread::sleep_for(std::chrono::seconds(3));
+			std::cout << "\r"
+			          << formatHashrate((state->hashesCompleted - completed) / 3) << " - "
+			          << blocksMined.load() << " " << (blocksMined == 1 ? "block" : "blocks") << "/"
+			          << kstMined.load() << " KST"
+			          << "      " << std::flush;
+		}
+	});
+	status.detach();
 
 	if (exitAfterArg.isSet()) {
 		std::thread exitThread([&] {
 			std::this_thread::sleep_for(std::chrono::seconds(exitAfterArg.getValue()));
-			std::cout << "Stopping" << std::endl;
+			std::cout << "\nStopping" << std::endl;
 			exit(0);
 		});
 		exitThread.detach();

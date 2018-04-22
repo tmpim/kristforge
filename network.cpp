@@ -122,7 +122,10 @@ void kristforge::network::run(const std::string &node, const std::shared_ptr<kri
 			// block submission reply - contains mining info
 			if (root["ok"].asBool()) {
 				if (opts.onSolved)
-					(*opts.onSolved)(*submit.getSolutionImmediately(), root["block"]["height"].asInt64());
+					(*opts.onSolved)(*submit.getSolutionImmediately(),
+					                 root["block"]["height"].asInt64(),
+					                 root["block"]["value"].asInt64());
+
 				state->setTarget(kristforge::Target(root["block"]["short_hash"].asString(), root["work"].asInt64()));
 			} else {
 				if (opts.onRejected) (*opts.onRejected)(*submit.getSolutionImmediately(), root["error"].asString());

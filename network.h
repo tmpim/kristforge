@@ -22,8 +22,8 @@ namespace kristforge::network {
 		/** A callback for when a solution is submitted */
 		std::optional<std::function<void(kristforge::Solution)>> onSubmitted;
 
-		/** A callback for when a solution is accepted - second param is block height */
-		std::optional<std::function<void(kristforge::Solution, long blockHeight)>> onSolved;
+		/** A callback for when a solution is accepted - second param is block height, third block value*/
+		std::optional<std::function<void(kristforge::Solution, long blockHeight, long value)>> onSolved;
 
 		/** A callback for when a solution is rejected - second param is error message */
 		std::optional<std::function<void(kristforge::Solution, const std::string &message)>> onRejected;

@@ -197,8 +197,10 @@ int main(int argc, char **argv) {
 		}
 	};
 
-	netOpts.onSolved = [](kristforge::Solution s, long height) {
-		std::cout << "Successfully mined block #" << height << " (nonce " << s.nonce << ")" << std::endl;
+	netOpts.onSolved = [](kristforge::Solution s, long height, long value) {
+		std::cout << "Successfully mined block #" << height <<
+		          " (nonce " << s.nonce <<
+		          ", value " << value << ")" << std::endl;
 	};
 
 	netOpts.onRejected = [](kristforge::Solution s, const std::string &message) {

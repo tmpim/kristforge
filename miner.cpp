@@ -125,9 +125,12 @@ void kristforge::Miner::runTests() {
 	cl::Kernel testScore(program, "testScore");
 	int vs = vecsize();
 
+	size_t hashInSize = sizeof(cl_uchar) * 64 * vs, hashOutSize = sizeof(cl_uchar) * 32 * vs, scoreOutSize = sizeof(cl_long) * vs;
+
 	// init data arrays
-	unsigned char hashInputData[64 * vs] = {0}, hashOutputData[32 * vs] = {0};
-	long scoreOutputData[vs] = {0};
+	std::unique_ptr<unsigned char[]> hashInputData(new unsigned char[hashInSize]());
+	std::unique_ptr<unsigned char[]> hashOutputData(new unsigned char[hashOutSize]());
+	std::unique_ptr<long[]> scoreOutputData(new long[vs]());
 
 	// interleave data according to vector size
 	for (int i = 0; i < vs; i++) {
@@ -136,9 +139,9 @@ void kristforge::Miner::runTests() {
 	}
 
 	// init OpenCL buffers
-	cl::Buffer hashInput(ctx, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, sizeof(hashInputData));
-	cl::Buffer hashOutput(ctx, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY, sizeof(hashOutputData));
-	cl::Buffer scoreOutput(ctx, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY, sizeof(scoreOutputData));
+	cl::Buffer hashInput(ctx, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, hashInSize);
+	cl::Buffer hashOutput(ctx, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY, hashOutSize);
+	cl::Buffer scoreOutput(ctx, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY, scoreOutSize);
 
 	// set kernel args
 	testDigest55.setArg(0, hashInput);
@@ -148,11 +151,11 @@ void kristforge::Miner::runTests() {
 	testScore.setArg(1, scoreOutput);
 
 	// enqueue actions
-	cmd.enqueueWriteBuffer(hashInput, CL_FALSE, 0, sizeof(hashInputData), hashInputData);
+	cmd.enqueueWriteBuffer(hashInput, CL_FALSE, 0, hashInSize, hashInputData.get());
 	cmd.enqueueTask(testDigest55);
 	cmd.enqueueTask(testScore);
-	cmd.enqueueReadBuffer(hashOutput, CL_FALSE, 0, sizeof(hashOutputData), hashOutputData);
-	cmd.enqueueReadBuffer(scoreOutput, CL_FALSE, 0, sizeof(scoreOutputData), scoreOutputData);
+	cmd.enqueueReadBuffer(hashOutput, CL_FALSE, 0, hashOutSize, hashOutputData.get());
+	cmd.enqueueReadBuffer(scoreOutput, CL_FALSE, 0, scoreOutSize, scoreOutputData.get());
 	cmd.finish();
 
 	// deinterleave and verify results

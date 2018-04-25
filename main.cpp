@@ -1,5 +1,6 @@
 #include "network.h"
 #include "miner.h"
+#include "utils.h"
 
 #include <iostream>
 #include <thread>
@@ -39,17 +40,6 @@ struct DeviceComparator {
 	}
 };
 
-/** Randomly generate a 2-character miner prefix */
-std::string generatePrefix() {
-	static std::random_device rd;
-	static std::mt19937 gen(rd());
-	static std::uniform_int_distribution<int> dist(0, 255);
-
-	char prefix[3];
-	snprintf(prefix, 3, "%0.2x", dist(gen));
-	return std::string(prefix);
-}
-
 std::string formatHashrate(long hashesPerSecond) {
 	static const char *suffixes[] = {"h/s", "kh/s", "Mh/s", "Gh/s", "Th/s"};
 
@@ -79,6 +69,7 @@ int main(int argc, char **argv) {
 	TCLAP::MultiSwitchArg verboseArg("v", "verbose", "Enable extra logging (can be repeated up to two times)", cmd);
 	TCLAP::ValueArg<int> exitAfterArg("", "exit-after", "Stop after mining for given number of seconds", false, 0, "seconds", cmd);
 	TCLAP::ValueArg<int> demoArg("", "demo", "Use a fake krist network with a fixed given work value", false, 10000, "work", cmd);
+	TCLAP::ValueArg<int> prefixArg("", "prefix", "Prefix number (will be incremented for successive devices)", false, 0, "0-255", cmd);
 	// @formatter:on
 
 	cmd.parse(argc, argv);
@@ -137,19 +128,30 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	uint8_t prefix = prefixArg.getValue(); // defaults to 0
+
+	if (!prefixArg.isSet()) {
+		// replace with random prefix
+		static std::random_device rd;
+		static std::mt19937 rng(rd());
+		static std::uniform_int_distribution<uint8_t> dist(0, 255);
+
+		prefix = dist(rng);
+	}
+
 	// create miners using selected devices
 	std::vector<kristforge::Miner> miners;
 
 	for (const cl::Device &d : selectedDevices) {
 		kristforge::MinerOptions opts(
-				generatePrefix(), // prefix
+				toHex(&prefix, 1), // prefix
 				worksizeArg.isSet() ? std::optional(worksizeArg.getValue()) : std::nullopt,
 				vecsizeArg.isSet() ? std::optional(vecsizeArg.getValue()) : std::nullopt,
 				clCompilerArg.getValue());
 
-		kristforge::Miner m(d, opts);
-		miners.push_back(m);
+		const kristforge::Miner &m = miners.emplace_back(d, opts);
 		std::cout << "Created miner: " << m << std::endl;
+		prefix++;
 	}
 
 	// run tests

@@ -1,5 +1,7 @@
 #include "network.h"
 
+#include "utils.h"
+
 #include <sstream>
 #include <future>
 #include <chrono>
@@ -178,4 +180,32 @@ void kristforge::network::run(const std::string &node, const std::shared_ptr<kri
 	hub.connect(requestWebsocketURI(node, opts.verbose));
 	hub.run();
 	solutionChecker.join();
+}
+
+void kristforge::network::runDemo(int work, const std::shared_ptr<kristforge::State> &state,
+                                  kristforge::network::Options opts) {
+
+	long height = 0;
+	std::string prevHash = "000000000000";
+
+	state->setTarget(kristforge::Target(prevHash, work));
+	if (opts.onConnect) (*opts.onConnect)();
+
+	while (!state->isStopped()) {
+		kristforge::Solution s = state->popSolution();
+		if (opts.onSubmitted) (*opts.onSubmitted)(s);
+
+		// determine validity of solution
+		std::string solutionInput = s.address + s.target.prevBlock + s.nonce;
+		std::string solutionHash = sha256(solutionInput);
+		long score = scoreHash(solutionHash);
+
+		if (score <= work) {
+			prevHash = toHex(solutionHash).substr(0, 12);
+			if (opts.onSolved) (*opts.onSolved)(s, ++height, 50);
+			state->setTarget(kristforge::Target(prevHash, work));
+		} else {
+			if (opts.onRejected) (*opts.onRejected)(s, "invalid_solution");
+		}
+	}
 }

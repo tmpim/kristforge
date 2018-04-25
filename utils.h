@@ -10,6 +10,12 @@ std::string toHex(const unsigned char *data, size_t len);
 /** Converts the binary data of the string to a hex string */
 std::string toHex(const std::string &data);
 
+/** Convert binary data to a string */
+std::string mkString(const unsigned char *data, size_t len);
+
+/** Compute SHA256 of given binary data and return binary hash */
+std::string sha256(const std::string &data);
+
 /** Compute SHA256 of given string and return hex representation */
 std::string sha256hex(const std::string &data);
 
@@ -23,5 +29,5 @@ void assertEquals(const T &expected, const T &got, const std::string &message) {
 	}
 }
 
-/** Convert binary data to a string */
-std::string mkString(const unsigned char *data, size_t len);
+/** Calculate the score for a given binary hash */
+long scoreHash(const std::string &hash);

@@ -78,6 +78,7 @@ int main(int argc, char **argv) {
 	TCLAP::ValueArg<std::string> clCompilerArg("", "cl-opts", "Extra options for the OpenCL compiler", false, "", "options", cmd);
 	TCLAP::MultiSwitchArg verboseArg("v", "verbose", "Enable extra logging (can be repeated up to two times)", cmd);
 	TCLAP::ValueArg<int> exitAfterArg("", "exit-after", "Stop after mining for given number of seconds", false, 0, "seconds", cmd);
+	TCLAP::ValueArg<int> demoArg("", "demo", "Use a fake krist network with a fixed given work value", false, 10000, "work", cmd);
 	// @formatter:on
 
 	cmd.parse(argc, argv);
@@ -234,5 +235,9 @@ int main(int argc, char **argv) {
 	}
 
 	// run networking
-	kristforge::network::run(kristNode.getValue(), state, netOpts);
+	if (demoArg.isSet()) {
+		kristforge::network::runDemo(demoArg.getValue(), state, netOpts);
+	} else {
+		kristforge::network::run(kristNode.getValue(), state, netOpts);
+	}
 }

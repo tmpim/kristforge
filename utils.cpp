@@ -4,7 +4,6 @@
 
 static const char hex[] = "0123456789abcdef";
 
-/** Convert binary data to hex representation */
 std::string toHex(const unsigned char *data, size_t len) {
 	std::string output;
 
@@ -16,7 +15,6 @@ std::string toHex(const unsigned char *data, size_t len) {
 	return output;
 }
 
-/** Convert binary string to hex representation */
 std::string toHex(const std::string &input) {
 	std::string output;
 
@@ -28,15 +26,27 @@ std::string toHex(const std::string &input) {
 	return output;
 }
 
-/** Compute sha256 and return hex representation */
+std::string mkString(const unsigned char *data, size_t len) {
+	std::string out(len, ' ');
+	for (int i = 0; i < len; i++) out[i] = data[i];
+	return out;
+}
+
+std::string sha256(const std::string &data) {
+	unsigned char hashed[SHA256_DIGEST_LENGTH];
+	SHA256(reinterpret_cast<const unsigned char *>(data.data()), data.size(), hashed);
+	return mkString(hashed, SHA256_DIGEST_LENGTH);
+}
+
+
 std::string sha256hex(const std::string &data) {
 	unsigned char hashed[SHA256_DIGEST_LENGTH];
 	SHA256(reinterpret_cast<const unsigned char *>(data.data()), data.size(), hashed);
 	return toHex(hashed, SHA256_DIGEST_LENGTH);
 }
 
-std::string mkString(const unsigned char *data, size_t len) {
-	std::string out(len, ' ');
-	for (int i = 0; i < len; i++) out[i] = data[i];
-	return out;
+long scoreHash(const std::string &hash) {
+	const auto *raw = reinterpret_cast<const unsigned char *>(hash.data());
+
+	return ((long)raw[5]) + (((long)raw[4]) << 8) + (((long)raw[3]) << 16) + (((long)raw[2]) << 24) + (((long) raw[1]) << 32) + (((long) raw[0]) << 40);
 }

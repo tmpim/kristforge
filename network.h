@@ -31,4 +31,7 @@ namespace kristforge::network {
 
 	/** Connects to the node and synchronously sets mining target and submits solutions */
 	void run(const std::string &node, const std::shared_ptr<State> &state, Options opts = Options());
+
+	/** Use a fake krist node with a constant given work value */
+	void runDemo(int work, const std::shared_ptr<State> &state, Options opts = Options());
 }

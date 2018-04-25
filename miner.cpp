@@ -107,13 +107,6 @@ void kristforge::Miner::ensureProgramBuilt() {
 	}
 }
 
-/** Calculate the score for a given hash */
-long scoreHash(const std::string &hash) {
-	const auto *raw = reinterpret_cast<const unsigned char *>(hash.data());
-
-	return ((long)raw[5]) + (((long)raw[4]) << 8) + (((long)raw[3]) << 16) + (((long)raw[2]) << 24) + (((long) raw[1]) << 32) + (((long) raw[0]) << 40);
-}
-
 /** Input strings for OpenCL tests */
 const std::string testInputs[16] = {"abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwx", "yzA", "BCD", // NOLINT
                                     "EFG", "HIJ", "KLM", "NOP", "QRS", "TUV"};

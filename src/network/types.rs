@@ -51,7 +51,7 @@ pub enum ServerMessage {
 
     Unknown {
         #[serde(alias = "type")]
-        msg_type: String,
+        msg_type: Option<String>,
 
         #[serde(flatten)]
         fields: HashMap<String, serde_json::Value>,

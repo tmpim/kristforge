@@ -245,6 +245,9 @@ impl Miner {
                     Ok(_) => {}
                     Err(StopMining) => break,
                 }
+
+                // clear solution buffer
+                solution_buf.cmd().fill(0u8, None).enq()?;
             }
 
             let cycle_time = cycle_start.elapsed();

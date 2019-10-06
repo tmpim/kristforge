@@ -184,7 +184,7 @@ fn main() -> Fallible<()> {
                     }
                     ServerMessage::KeepAlive { .. } => future::ok(()),
                     ServerMessage::Unknown { msg_type, fields } => {
-                        debug!("Got unknown message type {}: {:?}", msg_type, fields);
+                        debug!("Got unknown message type {:?}: {:?}", msg_type, fields);
                         future::ok(())
                     }
                 });

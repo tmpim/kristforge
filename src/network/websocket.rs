@@ -32,7 +32,10 @@ pub async fn connect(
         .try_filter(|m| future::ready(m.is_data()))
         .and_then(|m| {
             if let OwnedMessage::Text(j) = m {
-                future::ready(serde_json::from_str::<ServerMessage>(&j).map_err(|e| e.into()))
+                future::ready(serde_json::from_str::<ServerMessage>(&j).map_err(|e| {
+                    warn!("Failed to deserialize message: {:?} - {:?}", &j, &e);
+                    e.into()
+                }))
             } else {
                 future::err(format_err!("unexpected message type: {:?}", m))
             }

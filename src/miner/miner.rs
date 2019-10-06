@@ -256,7 +256,7 @@ impl Miner {
             interface.report_speed(worksize, cycle_time);
 
             // choose new worksize based on time taken
-            offset += worksize as i64;
+            offset += worksize as i64 * self.vecsize as i64;
 
             let mut ratio = self.rate / cycle_time.as_secs_f32();
             if ratio < 0.25 {

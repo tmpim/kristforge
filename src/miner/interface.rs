@@ -90,3 +90,9 @@ impl MinerInterface {
         ));
     }
 }
+
+impl Drop for MinerInterface {
+    fn drop(&mut self) {
+        self.pb.finish();
+    }
+}

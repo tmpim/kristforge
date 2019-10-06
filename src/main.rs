@@ -131,6 +131,16 @@ fn main() -> Fallible<()> {
 
                 let multi_pb = MultiProgress::new();
 
+                let wallet_pb = multi_pb.add(ProgressBar::new_spinner());
+                wallet_pb.set_style(ProgressStyle::default_spinner().template("{wide_msg}"));
+                wallet_pb.set_message(&format!("Mining for {}", miner_cfg.address));
+                let mut mined_kst = 0u32;
+
+                let target_pb = multi_pb.add(ProgressBar::new_spinner());
+                target_pb.set_style(
+                    ProgressStyle::default_spinner().template("Current target: {wide_msg}"),
+                );
+
                 for miner in miners {
                     let name = miner.pq().device().human_name()?;
                     let (target_tx, target_rx) = crossbeam::channel::bounded(1);
@@ -171,6 +181,19 @@ fn main() -> Fallible<()> {
                             msg_type, work, &block
                         );
 
+                        if miner_cfg.address == block.address && msg_type != "hello" {
+                            mined_kst += block.value;
+                            wallet_pb.set_message(&format!(
+                                "Mined {} KST for {}",
+                                mined_kst, miner_cfg.address
+                            ));
+                        }
+
+                        target_pb.set_message(&format!(
+                            "Block #{} (shorthash {}), work {}",
+                            block.height, block.short_hash, work
+                        ));
+
                         for tx in &target_channels {
                             if let Err(e) = tx.send(Target {
                                 block: block.short_hash,
@@ -191,6 +214,9 @@ fn main() -> Fallible<()> {
 
                 // run the futures
                 rt.block_on(future::try_join(solution_sender, target_receiver))?;
+
+                wallet_pb.finish();
+                target_pb.finish();
 
                 Ok(())
             })

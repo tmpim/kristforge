@@ -31,9 +31,5 @@ crossbeam = "0.7.2"
 dirs = "2.0.2"
 simplelog = "0.7.3"
 
-[patch.crates-io]
-# until released with fix for futures-preview 0.3.0-alpha.19
-surf = { git = "https://github.com/rustasync/surf.git" }
-
 [profile.release]
 lto = true

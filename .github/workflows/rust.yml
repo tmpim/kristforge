@@ -1,0 +1,17 @@
+name: Rust
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install OpenCL
+        run: sudo apt-get install pocl-opencl-icd -y
+      - name: Build
+        run: cargo build --verbose
+      - name: Run tests
+        run: cargo test --verbose -- --nocapture

@@ -10,9 +10,11 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Install Rust 1.39.0
-        run: rustup install 1.39.0
+        run: |
+          rustup set profile minimal
+          rustup install 1.39.0
       - name: Install OpenCL
-        run: sudo apt-get install pocl-opencl-icd -y
+        run: sudo apt-get install pocl-opencl-icd ocl-icd-opencl-dev -y
       - name: Build
         run: cargo +1.39.0 build --verbose
       - name: Run tests

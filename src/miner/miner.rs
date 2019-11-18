@@ -281,3 +281,33 @@ impl Miner {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Miner;
+    use crate::ext::DeviceExt;
+    use crate::krist::address::Address;
+    use crate::miner::selector::Selector;
+    use crate::miner::types::MinerConfig;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_miners() {
+        let selectors = vec![Selector::All];
+        let devices = Selector::select_all(&selectors).unwrap();
+        let cfg = MinerConfig {
+            address: Address::from_str("kaaaaaaaaa").unwrap(),
+            devices: selectors,
+            vector_size: None,
+            target_rate: 0.1,
+            max_worksize: 32,
+            fixed_worksize: None,
+        };
+
+        for device in devices {
+            eprintln!("Testing device {}", device.human_name().unwrap());
+            let miner = Miner::init(device, &cfg).unwrap();
+            miner.test().unwrap();
+        }
+    }
+}

@@ -53,6 +53,11 @@ pub struct MinerConfig {
     /// maximum of this value based on target rate
     #[structopt(short, long, name = "worksize", default_value = "268435456")]
     pub max_worksize: u32,
+
+    /// Specify a fixed worksize, overriding the target_rate and max_worksize
+    /// options.
+    #[structopt(long)]
+    pub fixed_worksize: Option<u32>,
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -16,6 +16,7 @@ pub struct Miner {
     vecsize: usize,
     rate: f32,
     max_worksize: u32,
+    fixed_worksize: Option<u32>,
     address: Address,
 }
 
@@ -49,6 +50,7 @@ impl Miner {
             rate: cfg.target_rate,
             max_worksize: cfg.max_worksize,
             address: cfg.address,
+            fixed_worksize: cfg.fixed_worksize,
         };
 
         debug!("Created miner: {:?}", &miner);
@@ -208,7 +210,10 @@ impl Miner {
             .build()?;
 
         let mut offset = 0i64;
-        let mut worksize = 32u32;
+        let mut worksize = match self.fixed_worksize {
+            Some(w) => w,
+            None => 32,
+        };
 
         loop {
             // check for new target
@@ -255,18 +260,22 @@ impl Miner {
             // report speed
             interface.report_speed(worksize, cycle_time);
 
-            // choose new worksize based on time taken
+            // bump offset
             offset += worksize as i64 * self.vecsize as i64;
 
-            let mut ratio = self.rate / cycle_time.as_secs_f32();
-            if ratio < 0.25 {
-                ratio = 0.25;
-            } else if ratio > 4. {
-                ratio = 4.;
+            // choose new worksize based on time taken
+
+            if self.fixed_worksize.is_none() {
+                let mut ratio = self.rate / cycle_time.as_secs_f32();
+                if ratio < 0.25 {
+                    ratio = 0.25;
+                } else if ratio > 4. {
+                    ratio = 4.;
+                }
+                worksize = min(self.max_worksize, (worksize as f32 * ratio) as u32);
+                worksize -= worksize % 32;
+                worksize = max(worksize, 32);
             }
-            worksize = min(self.max_worksize, (worksize as f32 * ratio) as u32);
-            worksize -= worksize % 32;
-            worksize = max(worksize, 32);
         }
 
         Ok(())

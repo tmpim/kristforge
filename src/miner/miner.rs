@@ -292,6 +292,7 @@ mod tests {
     use std::str::FromStr;
 
     #[test]
+    #[ignore]
     fn test_miners() {
         let selectors = vec![Selector::All];
         let devices = Selector::select_all(&selectors).unwrap();

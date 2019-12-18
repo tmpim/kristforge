@@ -1,6 +1,7 @@
-use crate::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::str;
+use std::convert::{TryFrom, TryInto};
+use std::fmt::{self, Debug, Display, Formatter};
+use std::str::FromStr;
 
 /// A krist address - v1 and v2 compatible
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -21,7 +22,7 @@ impl Address {
     pub fn as_str(&self) -> &str {
         // the contents were originally from a utf-8 string, so this should
         // never panic
-        str::from_utf8(&self.0).unwrap()
+        std::str::from_utf8(&self.0).unwrap()
     }
 
     pub fn as_bytes(&self) -> &[u8; Address::LENGTH] {
@@ -30,12 +31,12 @@ impl Address {
 }
 
 /// An error caused by an invalid address
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Fail)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum InvalidAddress {
-    #[fail(display = "invalid address length: {}", _0)]
+    #[error("invalid address length: {0}")]
     InvalidLength(usize),
 
-    #[fail(display = "illegal character: {} at index {}", _0, _1)]
+    #[error("illegal character: {0} at index {1}")]
     IllegalCharacter(char, usize),
 }
 

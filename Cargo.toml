@@ -1,17 +1,22 @@
 [package]
 name = "kristforge"
-version = "2.0.0"
+version = "3.0.0-alpha"
 description = "GPU-accelerated Krist miner"
 authors = ["Dominic Marcuse <dominic@marcuse.us>"]
 edition = "2018"
 
 [dependencies]
 serde = { version = "1.0.104", features = [ "derive" ] }
+serde_json = "1.0.44"
 hex = "0.4.0"
 thiserror = "1.0.9"
-
-[dev-dependencies]
-serde_json = "1.0.44"
+futures = "0.3.1"
+tokio = { version = "0.2.4", features = [ "macros" ] }
+tokio-tungstenite = { git = "https://github.com/dbcfd/tokio-tungstenite.git", branch = "tokio2", features = [ "tls" ] }
+isahc = "0.8.2"
+lazy_static = "1.4.0"
+structopt = "0.3.5"
+url = { version = "2.1.0", features = [ "serde" ] }
 
 [profile.release]
 lto = true

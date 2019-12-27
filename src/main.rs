@@ -1,8 +1,8 @@
 mod krist;
 mod network;
 
-use crate::network::{NetConfig, NetworkError};
 use futures::{future, TryStreamExt};
+use network::{NetConfig, NetworkError};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]

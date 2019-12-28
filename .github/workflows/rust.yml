@@ -9,11 +9,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
-      - name: Install Rust 1.40.0
+      - name: Install Rust beta
         run: |
           rustup set profile minimal
-          rustup install 1.40.0
+          rustup install beta
       - name: Build
-        run: cargo +1.40.0 build --verbose
+        run: cargo +beta build --verbose
       - name: Run tests
-        run: cargo +1.40.0 test --verbose -- --nocapture
+        run: cargo +beta test --verbose -- --nocapture

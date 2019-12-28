@@ -15,7 +15,8 @@ use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub struct NetConfig {
-    #[structopt(default_value = "https://krist.ceriat.net/ws/start")]
+    /// The krist node to connect to
+    #[structopt(short, long, default_value = "https://krist.ceriat.net/ws/start")]
     pub node: Uri,
 }
 
@@ -91,6 +92,19 @@ pub enum ClientMessage {
         address: Address,
         nonce: String,
     },
+}
+
+impl ClientMessage {
+    pub fn new_solution(address: Address, nonce: [u8; 12]) -> Self {
+        ClientMessage::SubmitBlock {
+            msg_type: SubmitBlockType,
+            id: rand::random(),
+            address,
+            nonce: std::str::from_utf8(&nonce)
+                .expect("invalid nonce")
+                .to_string(),
+        }
+    }
 }
 
 pub async fn connect(

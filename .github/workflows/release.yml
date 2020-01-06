@@ -1,0 +1,55 @@
+name: Rust release
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "*"
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Rust beta
+        run: |
+          rustup set profile minimal
+          rustup install beta
+      - name: Install cross
+        run: cargo install cross
+      - name: Build linux binary
+        run: cargo build --verbose --release
+      - name: Build windows binary
+        run: cross build --verbose --target x86_64-pc-windows-gnu --release
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: true
+      - name: Upload linux binary
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./target/release/kristforge
+          asset_name: kristforge_linux
+          asset_content_type: application/octet-stream
+      - name: Upload windows binary
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: .target/x86_64-pc-windows-gnu/release/kristforge.exe
+          asset_name: kristforge_windows.exe
+          asset_content_type: application/octet-stream

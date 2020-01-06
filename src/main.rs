@@ -75,6 +75,11 @@ async fn mine(
 ) -> Result<(), Box<dyn Error>> {
     let miners = miner::create_miners(miner_cfg)?;
 
+    if miners.is_empty() {
+        eprintln!("No miners available!");
+        return Ok(());
+    }
+
     let mut target_channels = vec![];
     let (sol_tx, sol_rx) = futures::channel::mpsc::unbounded();
 

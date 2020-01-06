@@ -1,25 +1,32 @@
 pub mod interface;
+pub mod ocl;
 
 use crate::krist::address::Address;
 use crate::krist::block::ShortHash;
 use crate::miner::interface::MinerInterface;
+use crate::miner::ocl::OclMiner;
 use structopt::StructOpt;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, StructOpt)]
 pub struct MinerConfig {
     /// Don't use OpenCL for mining.
     #[structopt(long)]
     no_gpu: bool,
+    // TODO: allow selecting individual devices
+    /// OpenCL miner target kernel execution time, in seconds
+    #[structopt(long, default_value = "0.1")]
+    ocl_rate: f32,
 
-    /// Select one or more specific OpenCL devices to use. If not set, all
-    /// compatible devices will be used.
-    #[structopt(short, long)]
-    gpu: Option<Vec<Uuid>>,
+    /// OpenCL miner max work size (default 2^30)
+    #[structopt(long, default_value = "1073741824")]
+    ocl_max_work_size: usize,
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum MinerError {}
+pub enum MinerError {
+    #[error("OpenCL error: {0}")]
+    OclError(#[from] dynamic_ocl::Error),
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Target {
@@ -43,9 +50,13 @@ pub trait Miner {
 }
 
 pub fn create_miners(opts: MinerConfig) -> Result<Vec<Box<dyn Miner + Send>>, MinerError> {
-    let mut miners = vec![];
+    let mut miners = Vec::<Box<dyn Miner + Send>>::new();
 
-    if !opts.no_gpu {}
+    if !opts.no_gpu {
+        for device in ocl::get_opencl_devices()? {
+            miners.push(Box::new(OclMiner::new(device, &opts)?));
+        }
+    }
 
     Ok(miners)
 }

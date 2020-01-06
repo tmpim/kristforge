@@ -78,6 +78,8 @@ pub enum ServerMessage {
     Unknown {
         #[serde(alias = "type")]
         msg_type: Option<String>,
+
+        #[serde(flatten)]
         fields: HashMap<String, serde_json::Value>,
     },
 }
@@ -95,14 +97,12 @@ pub enum ClientMessage {
 }
 
 impl ClientMessage {
-    pub fn new_solution(address: Address, nonce: [u8; 12]) -> Self {
+    pub fn new_solution(address: Address, nonce: String) -> Self {
         ClientMessage::SubmitBlock {
             msg_type: SubmitBlockType,
             id: rand::random(),
             address,
-            nonce: std::str::from_utf8(&nonce)
-                .expect("invalid nonce")
-                .to_string(),
+            nonce,
         }
     }
 }

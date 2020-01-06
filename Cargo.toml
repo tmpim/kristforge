@@ -25,7 +25,17 @@ uuid = "0.8.1"
 sha2 = "0.8.0"
 rand = "0.7.2"
 crossbeam-channel = "0.4.0"
+dynamic_ocl = { git = "https://github.com/dmarcuse/dynamic_ocl.git", rev = "8d1450d" }
 
 [profile.release]
 lto = true
 codegen-units = 1
+debug = true
+
+[profile.dev.package."*"]
+opt-level = 3
+codegen-units = 1
+
+[profile.release.package."*"]
+codegen-units = 1
+debug = false

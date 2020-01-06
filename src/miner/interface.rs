@@ -11,7 +11,7 @@ pub struct MinerInterface {
     pb: ProgressBar,
     target_rx: Receiver<Target>,
     target: Option<Target>,
-    solution_tx: UnboundedSender<[u8; 12]>,
+    solution_tx: UnboundedSender<String>,
 }
 
 pub struct StopMining;
@@ -28,7 +28,7 @@ impl MinerInterface {
         address: Address,
         pb: ProgressBar,
         target_rx: Receiver<Target>,
-        solution_tx: UnboundedSender<[u8; 12]>,
+        solution_tx: UnboundedSender<String>,
     ) -> Self {
         Self {
             address,
@@ -65,7 +65,7 @@ impl MinerInterface {
         }
     }
 
-    pub fn report_speed(&mut self, hashes: u32, time: Duration) {
+    pub fn report_speed(&mut self, hashes: u64, time: Duration) {
         let per_second = hashes as f64 / time.as_secs_f64();
 
         const PREFIXES: [&str; 5] = ["", "k", "M", "G", "T"];
@@ -78,14 +78,20 @@ impl MinerInterface {
         ));
     }
 
-    pub fn report_solution(&mut self, solution: [u8; 12]) -> Result<(), StopMining> {
+    pub fn report_solution(&mut self, solution: String) -> Result<(), StopMining> {
         log::info!(
             "Solution reported for address {} and target {:?}: nonce {} (hex: {:x?})",
             self.address,
             self.target,
-            String::from_utf8_lossy(&solution),
+            solution,
             solution,
         );
+
+        self.pb.println(format!(
+            "Submitting solution for block {} (nonce {})",
+            self.target.unwrap().block.into_hex(),
+            solution
+        ));
 
         // TODO: validate solution
 

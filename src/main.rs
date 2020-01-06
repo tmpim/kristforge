@@ -56,7 +56,16 @@ async fn net_log(net_cfg: NetConfig) -> Result<(), NetworkError> {
 }
 
 fn system_info() {
-    todo!()
+    match miner::ocl::get_opencl_devices() {
+        Ok(devices) => {
+            for d in devices {
+                println!("{}", d)
+            }
+        }
+        Err(e) => {
+            eprintln!("Error enumerating OpenCL devices: {:?}", e);
+        }
+    }
 }
 
 async fn mine(

@@ -4,6 +4,7 @@ version = "3.0.0-alpha"
 description = "GPU-accelerated Krist miner"
 authors = ["Dominic Marcuse <dominic@marcuse.us>"]
 edition = "2018"
+license = "Apache-2.0"
 
 [dependencies]
 serde = { version = "1.0.104", features = [ "derive" ] }

@@ -27,7 +27,7 @@ pub async fn ws_connect(
         .err_into()
         .try_filter(|m| future::ready(!(m.is_ping() || m.is_pong())))
         .and_then(|m| future::ready(m.into_text()).err_into())
-        .inspect_ok(|json| log::info!("got server text - {}", json))
+        .inspect_ok(|json| log::info!("Server message: {}", json))
         .and_then(|json| future::ready(serde_json::from_str(&json)).err_into());
 
     Ok((sink, stream))

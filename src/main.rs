@@ -66,6 +66,8 @@ fn system_info() {
             eprintln!("Error enumerating OpenCL devices: {:?}", e);
         }
     }
+
+    println!("{}", miner::cpu::get_cpu_info());
 }
 
 async fn mine(
@@ -94,7 +96,7 @@ async fn mine(
     target_pb.set_style(ProgressStyle::default_spinner().template("Current target: {wide_msg}"));
 
     for miner in miners {
-        let (target_tx, target_rx) = crossbeam_channel::bounded(1);
+        let (target_tx, target_rx) = crossbeam::channel::bounded(1);
         target_channels.push(target_tx);
 
         let name = miner.describe();

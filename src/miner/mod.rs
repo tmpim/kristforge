@@ -1,8 +1,10 @@
+pub mod cpu;
 pub mod interface;
 pub mod ocl;
 
 use crate::krist::address::Address;
 use crate::krist::block::ShortHash;
+use crate::miner::cpu::CpuMiner;
 use crate::miner::interface::MinerInterface;
 use crate::miner::ocl::OclMiner;
 use structopt::StructOpt;
@@ -13,13 +15,21 @@ pub struct MinerConfig {
     #[structopt(long)]
     no_gpu: bool,
     // TODO: allow selecting individual devices
-    /// OpenCL miner target kernel execution time, in seconds
+    /// OpenCL miner target kernel execution time, in seconds.
     #[structopt(long, default_value = "0.1")]
     gpu_rate: f32,
 
-    /// OpenCL miner max work size (default 2^30)
+    /// OpenCL miner max work size (default 2^30).
     #[structopt(long, default_value = "1073741824")]
     gpu_max_worksize: usize,
+
+    /// Don't use the CPU for mining.
+    #[structopt(long)]
+    no_cpu: bool,
+
+    /// CPU miner threads, defaulting to the processor's thread count.
+    #[structopt(long)]
+    cpu_threads: Option<usize>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -42,7 +52,7 @@ pub struct Solution {
 
 pub trait Miner {
     /// Get a human-readable description of this miner
-    fn describe(&self) -> String;
+    fn describe(&self) -> &str;
 
     /// Start a long-lived mining operation, blocking the thread and using the
     /// given interface for state operations.
@@ -56,6 +66,10 @@ pub fn create_miners(opts: MinerConfig) -> Result<Vec<Box<dyn Miner + Send>>, Mi
         for device in ocl::get_opencl_devices()? {
             miners.push(Box::new(OclMiner::new(device, &opts)?));
         }
+    }
+
+    if !opts.no_cpu {
+        miners.push(Box::new(CpuMiner::new(&opts)));
     }
 
     Ok(miners)

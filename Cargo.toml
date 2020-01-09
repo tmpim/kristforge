@@ -27,6 +27,11 @@ sha2 = "0.8.0"
 rand = "0.7.3"
 crossbeam-channel = "0.4.0"
 dynamic_ocl = { git = "https://github.com/dmarcuse/dynamic_ocl.git", rev = "8d1450d" }
+multiversion = "0.3.0"
+enumset = "0.4.4"
+itertools = "0.8.2"
+num_cpus = "1.11.1"
+crossbeam = "0.7.3"
 
 [profile.release]
 lto = true

@@ -1,9 +1,10 @@
 use super::Target;
 use crate::krist::address::Address;
-use crossbeam_channel::{Receiver, TryRecvError};
+use crossbeam::channel::{Receiver, TryRecvError};
 use futures::channel::mpsc::UnboundedSender;
 use indicatif::ProgressBar;
 use std::cmp::min;
+use std::convert::TryInto;
 use std::time::Duration;
 
 pub struct MinerInterface {
@@ -21,6 +22,17 @@ pub enum CurrentTarget {
     New(Target),
     Unchanged(Target),
     StopMining,
+}
+
+impl CurrentTarget {
+    pub fn into_raw(self) -> Option<([u8; 12], u64)> {
+        match self {
+            CurrentTarget::New(t) | CurrentTarget::Unchanged(t) => {
+                Some((t.block.into_hex().as_bytes().try_into().unwrap(), t.work))
+            }
+            CurrentTarget::StopMining => None,
+        }
+    }
 }
 
 impl MinerInterface {
@@ -78,7 +90,7 @@ impl MinerInterface {
         ));
     }
 
-    pub fn report_solution(&mut self, solution: String) -> Result<(), StopMining> {
+    pub fn report_solution(&self, solution: String) -> Result<(), StopMining> {
         log::info!(
             "Solution reported for address {} and target {:?}: nonce {} (hex: {:x?})",
             self.address,

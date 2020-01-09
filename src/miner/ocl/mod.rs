@@ -162,8 +162,8 @@ impl OclMiner {
 }
 
 impl Miner for OclMiner {
-    fn describe(&self) -> String {
-        self.name.clone()
+    fn describe(&self) -> &str {
+        &self.name
     }
 
     fn mine(mut self: Box<Self>, mut interface: MinerInterface) -> Result<(), MinerError> {

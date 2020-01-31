@@ -11,6 +11,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use log::LevelFilter;
 use miner::MinerConfig;
 use network::{NetConfig, NetworkError};
+use simplelog::ConfigBuilder;
 use std::error::Error;
 use std::fs::{create_dir_all, File};
 use structopt::StructOpt;
@@ -178,7 +179,9 @@ fn init_logging() {
 
     simplelog::WriteLogger::init(
         LevelFilter::Debug,
-        Default::default(),
+        ConfigBuilder::new()
+            .set_target_level(LevelFilter::Error)
+            .build(),
         File::create(log_file).expect("creating log file"),
     )
     .expect("initializing logger");

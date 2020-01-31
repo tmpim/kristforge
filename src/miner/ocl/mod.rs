@@ -17,6 +17,7 @@ use std::cmp::{max, min};
 use std::collections::HashSet;
 use std::ffi::CString;
 use std::fmt::{self, Display, Formatter};
+use std::num::NonZeroU64;
 use std::time::Instant;
 
 /// OpenCL kernel source
@@ -111,7 +112,7 @@ type MinerKernel = Kernel<(
     Buffer<'static, HostWriteOnly, cl_uchar>,
     cl_ulong,
     cl_ulong,
-    Buffer<'static, HostReadOnly, cl_uchar>,
+    Buffer<'static, HostReadOnly, cl_ulong>,
 )>;
 
 pub struct OclMiner {
@@ -147,7 +148,7 @@ impl OclMiner {
             .host_access::<HostReadOnly>()
             .device_access::<DeviceWriteOnly>()
             .alloc_host_ptr()
-            .build_copying_slice(&[0u8; 11])?;
+            .build_copying_slice(&[0u64])?;
 
         let kernel = kernel.bind_arguments((input_buf, 0, 0, output_buf))?;
 
@@ -173,7 +174,7 @@ impl Miner for OclMiner {
             .write(&interface.address().as_bytes()[..])?;
 
         let mut work_size = 1usize;
-        let mut offset = rand::random();
+        let mut offset = rand::random::<NonZeroU64>().into();
 
         let mut cycle_start = Instant::now();
 
@@ -198,20 +199,23 @@ impl Miner for OclMiner {
                 .exec_ndrange(work_size)?;
 
             // read output and check for solution
-            let mut solution = [0u8; 11];
+            let mut solution = [0u64];
             self.queue
                 .buffer_cmd(&mut self.kernel.arguments().3)
                 .read(&mut solution)?;
+            let [solution] = solution;
 
-            if solution != [0u8; 11] {
+            if solution != 0 {
+                log::info!("Found solution w/ nonce {}", solution);
+
                 // solution found!
-                let solution = String::from_utf8(Vec::from(&solution[..])).expect("invalid nonce");
+                let solution = solution.to_le_bytes().iter().copied().collect();
 
                 if interface.report_solution(solution).is_err() {
                     break;
                 }
 
-                // zero out solution buffer
+                // zero out solution
                 self.queue
                     .buffer_cmd(&mut self.kernel.arguments().3)
                     .fill(&0)?;
@@ -229,8 +233,6 @@ impl Miner for OclMiner {
             } else if cycle_time.as_secs_f32() > self.target_rate * 2.0 {
                 work_size = max(1, work_size / 2);
             }
-
-            //            println!("work size: {} / {}", work_size, self.max_work_size);
         }
 
         Ok(())

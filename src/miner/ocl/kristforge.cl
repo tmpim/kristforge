@@ -34,8 +34,8 @@ constant uint K[64] = {
 kernel void mine(
 	constant const uchar *input,    // address + prev block - 22 bytes
 	const ulong work,               // target work
-	const ulong offset,            // id offset
-	global uchar *solution          // solution nonce - 11 bytes
+	const ulong offset,             // id offset
+	global ulong *solution          // solution output
 ) {
 	// initialize hash input array
 	uchar text[64] = { 0 };
@@ -44,52 +44,15 @@ kernel void mine(
 #pragma unroll
 	for (int i = 0; i < 22; i++) text[i] = input[i];
 
-	// expand id into next 11 bytes
-	ulong id = get_global_id(0) + offset;
-
+	// load ID into next 8 bytes
+	ulong nonce = get_global_id(0) + offset;
 #pragma unroll
-	for (int i = 0; i < 11; i++) { text[i + 22] = ((id >> (i * 6)) & 0x3f) + 32; }
+	for (int i = 0; i < 8; i++) { text[i + 22] = (nonce >> (i * 8)) & 0xff; }
 
-//	printf("ID=%ld", id);
-//	printf("INPUT=\"%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\"",
-// text[0],
-// text[1],
-// text[2],
-// text[3],
-// text[4],
-// text[5],
-// text[6],
-// text[7],
-// text[8],
-// text[9],
-// text[10],
-// text[11],
-// text[12],
-// text[13],
-// text[14],
-// text[15],
-// text[16],
-// text[17],
-// text[18],
-// text[19],
-// text[20],
-// text[21],
-// text[22],
-// text[23],
-// text[24],
-// text[25],
-// text[26],
-// text[27],
-// text[28],
-// text[29],
-// text[30],
-// text[31],
-// text[32]);
-
-	// padding - digest input is 33 bytes
-	text[33] = 0x80;
-	text[62] = ((33 * 8) >> 8) & 0xff;
-	text[63] =  (33 * 8)       & 0xff;
+	// padding - digest input is 30 bytes
+	text[30] = 0x80;
+	text[62] = ((30 * 8) >> 8) & 0xff;
+	text[63] =  (30 * 8)       & 0xff;
 
 	uint a, b, c, d, e, f, g, h, t1, t2, m[64];
 
@@ -135,8 +98,6 @@ kernel void mine(
 	a += H0;
 	b += H1;
 
-//	printf("OUTPUT=%x%x\n", a, b);
-
 	ulong score =   (((ulong)(a >> 24)) & 0xff) << 40 |
 					(((ulong)(a >> 16)) & 0xff) << 32 |
 					(((ulong)(a >>  8)) & 0xff) << 24 |
@@ -146,22 +107,6 @@ kernel void mine(
 
 	if (score <= work) {
 		// solution found!
-		// copy nonce to solution buffer
-#pragma unroll
-		for (int i = 0; i < 11; i++) {
-			solution[i] = text[i + 22];
-		}
+		*solution = nonce;
 	}
-
-//	printf("SCORE=%lu\n", score);
-
-//	printf("SCORE_LE=%lu\n", (((ulong)a) << 16) + b);
-//
-////	printf("A=%u", a);
-//	// convert to big endian
-//	a = ((a & 0xff000000) >> 24) | ((a & 0x00ff0000) >> 8) | ((a & 0x0000ff00) << 8) | ((a & 0x000000ff) << 24);
-//	b = ((b & 0xff000000) >> 24) | ((b & 0x00ff0000) >> 8) | ((b & 0x0000ff00) << 8) | ((b & 0x000000ff) << 24);
-////	printf("A=%u", a);
-//
-//	printf("SCORE_BE=%lu\n", (((ulong)a) << 16) + b);
 }

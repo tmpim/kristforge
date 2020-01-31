@@ -60,3 +60,9 @@ pub fn create_miners(opts: MinerConfig) -> Result<Vec<Box<dyn Miner + Send>>, Mi
 
     Ok(miners)
 }
+
+pub fn calculate_work(hash: [u8; 6]) -> u64 {
+    let mut hash_out = [0u8; 8];
+    hash_out[2..].copy_from_slice(&hash);
+    u64::from_be_bytes(hash_out)
+}

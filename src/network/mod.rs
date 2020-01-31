@@ -92,12 +92,12 @@ pub enum ClientMessage {
         msg_type: SubmitBlockType,
         id: NonZeroU64,
         address: Address,
-        nonce: String,
+        nonce: Vec<u8>,
     },
 }
 
 impl ClientMessage {
-    pub fn new_solution(address: Address, nonce: String) -> Self {
+    pub fn new_solution(address: Address, nonce: Vec<u8>) -> Self {
         ClientMessage::SubmitBlock {
             msg_type: SubmitBlockType,
             id: rand::random(),

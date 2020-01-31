@@ -8,23 +8,23 @@ license = "Apache-2.0"
 
 [dependencies]
 serde = { version = "1.0.104", features = [ "derive" ] }
-serde_json = "1.0.44"
+serde_json = "1.0.45"
 hex = "0.4.0"
-thiserror = "1.0.9"
+thiserror = "1.0.10"
 futures = "0.3.1"
-tokio = { version = "0.2.4", features = [ "macros" ] }
-tokio-tungstenite = { git = "https://github.com/dbcfd/tokio-tungstenite.git", branch = "tokio2", features = [ "tls" ] }
+tokio = { version = "0.2.11", features = [ "macros" ] }
+tokio-tungstenite = { version = "0.10.1", features = [ "tls" ] }
 isahc = "0.8.2"
 lazy_static = "1.4.0"
-structopt = "0.3.5"
-url = { version = "2.1.0", features = [ "serde" ] }
-indicatif = "0.13.0"
+structopt = "0.3.8"
+url = { version = "2.1.1", features = [ "serde" ] }
+indicatif = "0.14.0"
 log = "0.4.8"
 simplelog = "0.7.4"
 dirs = "2.0.2"
 uuid = "0.8.1"
 sha2 = "0.8.0"
-rand = "0.7.2"
+rand = "0.7.3"
 crossbeam-channel = "0.4.0"
 dynamic_ocl = { git = "https://github.com/dmarcuse/dynamic_ocl.git", rev = "8d1450d" }
 
@@ -33,10 +33,10 @@ lto = true
 codegen-units = 1
 debug = true
 
-[profile.dev.package."*"]
-opt-level = 3
-codegen-units = 1
-
 [profile.release.package."*"]
 codegen-units = 1
 debug = false
+
+[profile.dev.package."*"]
+opt-level = 1
+codegen-units = 1

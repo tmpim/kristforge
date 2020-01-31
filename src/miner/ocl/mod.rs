@@ -126,8 +126,8 @@ impl OclMiner {
     pub fn new(
         MiningDevice { device, name, .. }: MiningDevice,
         &MinerConfig {
-            ocl_rate: target_rate,
-            ocl_max_work_size: max_work_size,
+            gpu_rate: target_rate,
+            gpu_max_worksize: max_work_size,
             ..
         }: &MinerConfig,
     ) -> Result<Self, MinerError> {

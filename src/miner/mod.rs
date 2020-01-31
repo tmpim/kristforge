@@ -15,11 +15,11 @@ pub struct MinerConfig {
     // TODO: allow selecting individual devices
     /// OpenCL miner target kernel execution time, in seconds
     #[structopt(long, default_value = "0.1")]
-    ocl_rate: f32,
+    gpu_rate: f32,
 
     /// OpenCL miner max work size (default 2^30)
     #[structopt(long, default_value = "1073741824")]
-    ocl_max_work_size: usize,
+    gpu_max_worksize: usize,
 }
 
 #[derive(Debug, thiserror::Error)]

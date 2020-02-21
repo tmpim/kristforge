@@ -1,3 +1,5 @@
+mod miner_impls;
+
 use crate::krist::address::Address;
 use crate::miner::interface::{CurrentTarget, MinerInterface};
 use crate::miner::{Miner, MinerConfig, MinerError};
@@ -5,34 +7,45 @@ use crossbeam::atomic::AtomicCell;
 use crossbeam::channel::{RecvTimeoutError, Sender};
 use enumset::{EnumSet, EnumSetType};
 use itertools::Itertools;
-use multiversion::target_clones;
+use miner_impls::*;
+use std::convert::TryInto;
 use std::fmt::{self, Display, Formatter};
 use std::num::Wrapping;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
-fn mine_core(input: [u8; 22], work: u64, nonce: Wrapping<u64>) -> Option<[u8; 11]> {
+fn mine_core<T: MinerCore>(
+    input: [u8; 22],
+    work: u64,
+    Wrapping(nonce): Wrapping<u64>,
+) -> Option<[u8; 11]> {
     // initialize hash inputs
     let mut text = [0u8; 64];
 
     // fill first 22 bytes of hash input
     (&mut text[..22]).copy_from_slice(&input);
 
-    // TODO: implement this lol
+    // expand nonce into next 11 bytes of hash input
+    for (i, v) in text[22..33].iter_mut().enumerate() {
+        *v = (((nonce >> (i * 6)) & 0x3f) + 32) as u8;
+    }
 
-    None
+    // hash and check score
+    if T::score_hash(text, 33) <= work {
+        Some(text[22..33].try_into().unwrap())
+    } else {
+        None
+    }
 }
 
-fn mine(
+fn mine<T: MinerCore>(
     address: Address,
     hashes: &AtomicU64,
     target: &AtomicCell<Option<([u8; 12], u64)>>,
     mut nonce: Wrapping<u64>,
     sol_tx: &Sender<String>,
 ) {
-    use self::mine_core;
-
-    const HASHES_BATCH_SIZE: u64 = 1000;
+    const HASHES_BATCH_SIZE: u64 = 10000;
 
     let mut input = [0u8; 22];
     (&mut input[..10]).copy_from_slice(address.as_bytes());
@@ -42,12 +55,26 @@ fn mine(
 
         for _ in 0..HASHES_BATCH_SIZE {
             nonce += Wrapping(1);
-            if let Some(s) = mine_core(input, work, nonce) {
+            if let Some(s) = mine_core::<T>(input, work, nonce) {
                 sol_tx.send(String::from_utf8(s.to_vec()).unwrap()).unwrap();
             }
         }
 
         hashes.fetch_add(HASHES_BATCH_SIZE, Ordering::Relaxed);
+    }
+}
+
+fn mine_best(
+    address: Address,
+    hashes: &AtomicU64,
+    target: &AtomicCell<Option<([u8; 12], u64)>>,
+    mut nonce: Wrapping<u64>,
+    sol_tx: &Sender<String>,
+) {
+    if is_x86_feature_detected!("sha") {
+        mine::<x86_64_sha::MinerCore>(address, hashes, target, nonce, sol_tx);
+    } else {
+        mine::<naive::MinerCore>(address, hashes, target, nonce, sol_tx);
     }
 }
 
@@ -148,7 +175,7 @@ impl Miner for CpuMiner {
                 s.builder()
                     .name(format!("CPU miner {}", i))
                     .spawn(move |_| {
-                        mine(address, hashes, target, offset, sol_tx);
+                        mine_best(address, hashes, target, offset, sol_tx);
                     })
                     .unwrap();
             }

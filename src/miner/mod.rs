@@ -31,8 +31,8 @@ pub struct MinerConfig {
     #[structopt(long)]
     cpu_threads: Option<usize>,
 
-    // TODO
-    #[structopt(skip)]
+    /// Select a specific CPU mining kernel.
+    #[structopt(long)]
     cpu_kernel: Option<KernelType>,
 }
 

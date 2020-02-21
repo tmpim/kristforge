@@ -10,14 +10,34 @@ use enumset::{EnumSet, EnumSetType};
 use itertools::Itertools;
 use std::fmt::{self, Display, Formatter};
 use std::num::Wrapping;
+use std::str::FromStr;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
-/// Mining kernels available on this platform
+/// Select a CPU mining kernel to use
 #[derive(Debug, EnumSetType, PartialOrd, Ord)]
 pub enum KernelType {
+    /// CPU mining kernel with no hardware-specific optimizations.
     Unoptimized,
+
+    /// CPU mining kernel using x86/x86_64 SHA instructions
     SHA,
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("Invalid kernel type: {0}")]
+pub struct InvalidKernelType(String);
+
+impl FromStr for KernelType {
+    type Err = InvalidKernelType;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.to_lowercase().as_ref() {
+            "unoptimized" => Self::Unoptimized,
+            "sha" => Self::SHA,
+            s => return Err(InvalidKernelType(s.to_string())),
+        })
+    }
 }
 
 impl KernelType {
@@ -148,7 +168,7 @@ impl Miner for CpuMiner {
                     let mut cycle_start = Instant::now();
 
                     loop {
-                        match sol_rx.recv_timeout(Duration::from_millis(250)) {
+                        match sol_rx.recv_timeout(Duration::from_millis(1000)) {
                             Ok(s) => {
                                 if interface.report_solution(s).is_err() {
                                     target.store(None);

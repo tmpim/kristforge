@@ -1,8 +1,8 @@
 [package]
 name = "kristforge"
-version = "3.0.0-alpha"
+version = "3.1.0"
 description = "GPU-accelerated Krist miner"
-authors = ["Dominic Marcuse <dominic@marcuse.us>"]
+authors = ["Dana Marcuse <dana@marcuse.us>"]
 edition = "2018"
 license = "Apache-2.0"
 

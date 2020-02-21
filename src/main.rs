@@ -103,6 +103,7 @@ async fn mine(
         let pb = multi_pb.add(ProgressBar::new_spinner());
         pb.set_prefix(&name);
         pb.set_style(ProgressStyle::default_spinner().template("{spinner} {prefix}: {wide_msg}"));
+        pb.set_message("Initializing...");
 
         let interface = MinerInterface::new(address, pb, target_rx, sol_tx.clone());
 

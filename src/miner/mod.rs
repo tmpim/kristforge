@@ -19,8 +19,8 @@ pub struct MinerConfig {
     #[structopt(long, default_value = "0.1")]
     gpu_rate: f32,
 
-    /// OpenCL miner max work size (default 2^30).
-    #[structopt(long, default_value = "1073741824")]
+    /// OpenCL miner max work size (default 2^31).
+    #[structopt(long, default_value = "2147483648")]
     gpu_max_worksize: usize,
 
     /// Don't use the CPU for mining.

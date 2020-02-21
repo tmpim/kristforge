@@ -800,7 +800,6 @@ name = "kristforge"
 version = "3.0.0-alpha"
 dependencies = [
  "crossbeam",
- "crossbeam-channel",
  "dirs",
  "dynamic_ocl",
  "enumset",

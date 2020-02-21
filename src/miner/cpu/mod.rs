@@ -1,95 +1,44 @@
-mod miner_impls;
+mod framework;
+mod kernels;
 
-use crate::krist::address::Address;
+use crate::miner::cpu::framework::Context;
 use crate::miner::interface::{CurrentTarget, MinerInterface};
 use crate::miner::{Miner, MinerConfig, MinerError};
 use crossbeam::atomic::AtomicCell;
-use crossbeam::channel::{RecvTimeoutError, Sender};
+use crossbeam::channel::RecvTimeoutError;
 use enumset::{EnumSet, EnumSetType};
 use itertools::Itertools;
-use miner_impls::*;
-use std::convert::TryInto;
 use std::fmt::{self, Display, Formatter};
 use std::num::Wrapping;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
-fn mine_core<T: MinerCore>(
-    input: [u8; 22],
-    work: u64,
-    Wrapping(nonce): Wrapping<u64>,
-) -> Option<[u8; 11]> {
-    // initialize hash inputs
-    let mut text = [0u8; 64];
-
-    // fill first 22 bytes of hash input
-    (&mut text[..22]).copy_from_slice(&input);
-
-    // expand nonce into next 11 bytes of hash input
-    for (i, v) in text[22..33].iter_mut().enumerate() {
-        *v = (((nonce >> (i * 6)) & 0x3f) + 32) as u8;
-    }
-
-    // hash and check score
-    if T::score_hash(text, 33) <= work {
-        Some(text[22..33].try_into().unwrap())
-    } else {
-        None
-    }
-}
-
-fn mine<T: MinerCore>(
-    address: Address,
-    hashes: &AtomicU64,
-    target: &AtomicCell<Option<([u8; 12], u64)>>,
-    mut nonce: Wrapping<u64>,
-    sol_tx: &Sender<String>,
-) {
-    const HASHES_BATCH_SIZE: u64 = 10000;
-
-    let mut input = [0u8; 22];
-    (&mut input[..10]).copy_from_slice(address.as_bytes());
-
-    while let Some((block, work)) = target.load() {
-        (&mut input[10..]).copy_from_slice(&block);
-
-        for _ in 0..HASHES_BATCH_SIZE {
-            nonce += Wrapping(1);
-            if let Some(s) = mine_core::<T>(input, work, nonce) {
-                sol_tx.send(String::from_utf8(s.to_vec()).unwrap()).unwrap();
-            }
-        }
-
-        hashes.fetch_add(HASHES_BATCH_SIZE, Ordering::Relaxed);
-    }
-}
-
-fn mine_best(
-    address: Address,
-    hashes: &AtomicU64,
-    target: &AtomicCell<Option<([u8; 12], u64)>>,
-    mut nonce: Wrapping<u64>,
-    sol_tx: &Sender<String>,
-) {
-    if is_x86_feature_detected!("sha") {
-        mine::<x86_64_sha::MinerCore>(address, hashes, target, nonce, sol_tx);
-    } else {
-        mine::<naive::MinerCore>(address, hashes, target, nonce, sol_tx);
-    }
-}
-
-#[derive(EnumSetType, Debug)]
-pub enum InstructionSets {
-    AVX,
-    AVX2,
+/// Mining kernels available on this platform
+#[derive(Debug, EnumSetType, PartialOrd, Ord)]
+pub enum KernelType {
+    Unoptimized,
     SHA,
 }
 
-impl Display for InstructionSets {
+impl KernelType {
+    pub fn mine_with(self, context: Context) {
+        match self {
+            Self::Unoptimized => context.mine(kernels::Unoptimized),
+            Self::SHA => context.mine(kernels::SHA),
+        }
+    }
+}
+
+impl Default for KernelType {
+    fn default() -> Self {
+        KernelType::Unoptimized
+    }
+}
+
+impl Display for KernelType {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let name = match self {
-            Self::AVX => "AVX",
-            Self::AVX2 => "AVX2",
+            Self::Unoptimized => "unoptimized",
             Self::SHA => "SHA",
         };
 
@@ -97,9 +46,10 @@ impl Display for InstructionSets {
     }
 }
 
+#[derive(Debug)]
 pub struct CpuInfo {
     threads: usize,
-    instructions: EnumSet<InstructionSets>,
+    supported: EnumSet<KernelType>,
 }
 
 impl Display for CpuInfo {
@@ -108,54 +58,66 @@ impl Display for CpuInfo {
             f,
             "CPU:\n\
             \tThreads: {threads}\n\
-            \tInstruction sets: {instructions}",
+            \tSupported kernels: {supported}\n\
+            \tUnsupported kernels: {available}",
             threads = self.threads,
-            instructions = self.instructions.iter().join(", ")
+            supported = self.supported.iter().join(", "),
+            available = (!self.supported).iter().join(", "),
         )
     }
 }
 
-pub fn get_cpu_info() -> CpuInfo {
-    let threads = num_cpus::get();
-
-    let mut instructions = EnumSet::new();
-
-    if is_x86_feature_detected!("avx") {
-        instructions |= InstructionSets::AVX;
-    }
-
-    if is_x86_feature_detected!("avx2") {
-        instructions |= InstructionSets::AVX2;
-    }
+fn get_supported_kernels() -> EnumSet<KernelType> {
+    let mut supported = EnumSet::only(KernelType::Unoptimized);
 
     if is_x86_feature_detected!("sha") {
-        instructions |= InstructionSets::SHA;
+        supported |= KernelType::SHA;
     }
 
-    CpuInfo {
-        threads,
-        instructions,
-    }
+    supported
+}
+
+fn get_best_kernel() -> KernelType {
+    Iterator::max(get_supported_kernels().iter()).unwrap_or_default()
+}
+
+pub fn get_cpu_info() -> CpuInfo {
+    let threads = num_cpus::get();
+    let supported = get_supported_kernels();
+
+    CpuInfo { threads, supported }
 }
 
 pub struct CpuMiner {
+    kernel_type: KernelType,
     threads: usize,
 }
 
 impl CpuMiner {
-    pub fn new(&MinerConfig { cpu_threads, .. }: &MinerConfig) -> CpuMiner {
+    pub fn new(
+        &MinerConfig {
+            cpu_threads,
+            cpu_kernel,
+            ..
+        }: &MinerConfig,
+    ) -> CpuMiner {
         CpuMiner {
             threads: cpu_threads.unwrap_or_else(num_cpus::get),
+            kernel_type: cpu_kernel.unwrap_or_else(get_best_kernel),
         }
     }
 }
 
 impl Miner for CpuMiner {
-    fn describe(&self) -> &str {
-        "CPU"
+    fn describe(&self) -> String {
+        format!("CPU [{}x {}]", self.threads, self.kernel_type)
     }
 
     fn mine(self: Box<Self>, mut interface: MinerInterface) -> Result<(), MinerError> {
+        let Self {
+            threads,
+            kernel_type,
+        } = *self;
         // todo: investigate using evc to avoid locks, or parking_lot for better locks?
         let hashes = AtomicU64::new(0);
         let target = AtomicCell::new(interface.current_target().into_raw());
@@ -170,13 +132,12 @@ impl Miner for CpuMiner {
             let address = interface.address();
             let mut offset = Wrapping(rand::random());
 
-            for i in 0..self.threads {
-                offset += Wrapping(std::u64::MAX / (self.threads as u64));
+            for i in 0..threads {
+                offset += Wrapping(std::u64::MAX / (threads as u64));
+                let ctx = Context::new(address, hashes, target, offset.0, sol_tx);
                 s.builder()
                     .name(format!("CPU miner {}", i))
-                    .spawn(move |_| {
-                        mine_best(address, hashes, target, offset, sol_tx);
-                    })
+                    .spawn(move |_| kernel_type.mine_with(ctx))
                     .unwrap();
             }
 

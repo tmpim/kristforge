@@ -1,12 +1,12 @@
 pub mod cpu;
+pub mod gpu;
 pub mod interface;
-pub mod ocl;
 
 use crate::krist::address::Address;
 use crate::krist::block::ShortHash;
-use crate::miner::cpu::CpuMiner;
+use crate::miner::cpu::{CpuMiner, KernelType};
+use crate::miner::gpu::OclMiner;
 use crate::miner::interface::MinerInterface;
-use crate::miner::ocl::OclMiner;
 use structopt::StructOpt;
 
 #[derive(Debug, Clone, StructOpt)]
@@ -30,6 +30,10 @@ pub struct MinerConfig {
     /// CPU miner threads, defaulting to the processor's thread count.
     #[structopt(long)]
     cpu_threads: Option<usize>,
+
+    // TODO
+    #[structopt(skip)]
+    cpu_kernel: Option<KernelType>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -52,7 +56,7 @@ pub struct Solution {
 
 pub trait Miner {
     /// Get a human-readable description of this miner
-    fn describe(&self) -> &str;
+    fn describe(&self) -> String;
 
     /// Start a long-lived mining operation, blocking the thread and using the
     /// given interface for state operations.
@@ -63,7 +67,7 @@ pub fn create_miners(opts: MinerConfig) -> Result<Vec<Box<dyn Miner + Send>>, Mi
     let mut miners = Vec::<Box<dyn Miner + Send>>::new();
 
     if !opts.no_gpu {
-        for device in ocl::get_opencl_devices()? {
+        for device in gpu::get_opencl_devices()? {
             miners.push(Box::new(OclMiner::new(device, &opts)?));
         }
     }

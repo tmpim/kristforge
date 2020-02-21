@@ -56,7 +56,7 @@ async fn net_log(net_cfg: NetConfig) -> Result<(), NetworkError> {
 }
 
 fn system_info() {
-    match miner::ocl::get_opencl_devices() {
+    match miner::gpu::get_opencl_devices() {
         Ok(devices) => {
             for d in devices {
                 println!("{}", d)

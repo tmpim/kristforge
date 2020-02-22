@@ -2,6 +2,8 @@
 
 GPU-accelerated cross platform Krist miner, using OpenCL
 
+![Screenshot](.github/example.png)
+
 ## Download
 
 Pre-built 64-bit binaries for Linux and Windows can be found on the

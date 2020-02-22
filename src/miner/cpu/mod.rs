@@ -8,6 +8,8 @@ use crossbeam::atomic::AtomicCell;
 use crossbeam::channel::RecvTimeoutError;
 use enumset::{EnumSet, EnumSetType};
 use itertools::Itertools;
+use raw_cpuid::CpuId;
+use std::cmp::max;
 use std::fmt::{self, Display, Formatter};
 use std::num::Wrapping;
 use std::str::FromStr;
@@ -68,7 +70,9 @@ impl Display for KernelType {
 
 #[derive(Debug)]
 pub struct CpuInfo {
+    cores: usize,
     threads: usize,
+    default_miner_threads: usize,
     supported: EnumSet<KernelType>,
 }
 
@@ -77,10 +81,13 @@ impl Display for CpuInfo {
         write!(
             f,
             "CPU:\n\
-            \tThreads: {threads}\n\
+            \tCores/threads: {cores}/{threads}\n\
+            \tDefault miner threads: {miner_threads}\n\
             \tSupported kernels: {supported}\n\
             \tUnsupported kernels: {available}",
+            cores = self.cores,
             threads = self.threads,
+            miner_threads = self.default_miner_threads,
             supported = self.supported.iter().join(", "),
             available = (!self.supported).iter().join(", "),
         )
@@ -101,11 +108,33 @@ fn get_best_kernel() -> KernelType {
     Iterator::max(get_supported_kernels().iter()).unwrap_or_default()
 }
 
-pub fn get_cpu_info() -> CpuInfo {
+/// Some CPUs seem to really struggle when every thread is in use, to the point
+/// of making the miner entirely unusable. This is particularly prevalent on
+/// Intel CPUs, presumably due to the impact of spectre mitigations on
+/// hyperthreading. Thus, we choose a lower default number of threads on Intel
+/// hardware.
+fn get_best_thread_count() -> usize {
+    let cores = num_cpus::get_physical();
     let threads = num_cpus::get();
+
+    match CpuId::new().get_vendor_info() {
+        Some(v) if v.as_string().to_lowercase().contains("intel") => max(threads - 2, cores),
+        _ => threads,
+    }
+}
+
+pub fn get_cpu_info() -> CpuInfo {
+    let cores = num_cpus::get_physical();
+    let threads = num_cpus::get();
+    let default_miner_threads = get_best_thread_count();
     let supported = get_supported_kernels();
 
-    CpuInfo { threads, supported }
+    CpuInfo {
+        cores,
+        threads,
+        default_miner_threads,
+        supported,
+    }
 }
 
 pub struct CpuMiner {
@@ -122,7 +151,7 @@ impl CpuMiner {
         }: &MinerConfig,
     ) -> CpuMiner {
         CpuMiner {
-            threads: cpu_threads.unwrap_or_else(num_cpus::get),
+            threads: cpu_threads.unwrap_or_else(get_best_thread_count),
             kernel_type: cpu_kernel.unwrap_or_else(get_best_kernel),
         }
     }

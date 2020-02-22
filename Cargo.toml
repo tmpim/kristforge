@@ -31,6 +31,12 @@ crossbeam = "0.7.3"
 ring = "0.16.11"
 raw-cpuid = "7.0.3"
 
+[target.'cfg(windows)'.dependencies]
+winapi = "0.3.8"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.67"
+
 [profile.release]
 lto = true
 codegen-units = 1

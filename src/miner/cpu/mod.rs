@@ -1,5 +1,6 @@
 mod framework;
 mod kernels;
+mod thread_priority;
 
 use crate::miner::cpu::framework::Context;
 use crate::miner::interface::{CurrentTarget, MinerInterface};
@@ -186,7 +187,10 @@ impl Miner for CpuMiner {
                 let ctx = Context::new(address, hashes, target, offset.0, sol_tx);
                 s.builder()
                     .name(format!("CPU miner {}", i))
-                    .spawn(move |_| kernel_type.mine_with(ctx))
+                    .spawn(move |_| {
+                        thread_priority::set_low_priority();
+                        kernel_type.mine_with(ctx);
+                    })
                     .unwrap();
             }
 

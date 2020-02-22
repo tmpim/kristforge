@@ -809,6 +809,7 @@ dependencies = [
  "isahc",
  "itertools",
  "lazy_static",
+ "libc",
  "log",
  "num_cpus",
  "rand",
@@ -822,6 +823,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "url",
+ "winapi 0.3.8",
 ]
 
 [[package]]

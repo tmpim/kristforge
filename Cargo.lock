@@ -427,8 +427,9 @@ dependencies = [
 
 [[package]]
 name = "dynamic_ocl"
-version = "0.1.0-alpha"
-source = "git+https://github.com/dmarcuse/dynamic_ocl.git?rev=ba2cfc239be685e7251918badd77242397a463bc#ba2cfc239be685e7251918badd77242397a463bc"
+version = "0.1.0-alpha.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df6150f15e388359ad9d1f2037c6b13c219c3381050fbb6e0c70b65f64330d6a"
 dependencies = [
  "const-cstr",
  "dlopen",

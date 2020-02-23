@@ -194,6 +194,7 @@ async fn main() {
     let opts: Opts = Opts::from_args();
 
     init_logging();
+    log::info!("Arguments: {:?}", opts);
 
     match opts {
         Opts::NetLog { net_cfg } => {

@@ -154,6 +154,7 @@ impl Miner for CpuMiner {
             let mut offset = Wrapping(rand::random());
 
             for i in 0..threads {
+                log::debug!("Spawning CPU miner thread {} using {:?}", i, kernel_type);
                 offset += Wrapping(std::u64::MAX / (threads as u64));
                 let ctx = Context::new(address, hashes, target, offset.0, sol_tx);
                 s.builder()

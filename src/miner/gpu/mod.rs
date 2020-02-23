@@ -94,12 +94,16 @@ pub fn get_opencl_devices() -> Result<Vec<MiningDevice>, MinerError> {
                 let compute_units = device.max_compute_units()?;
                 let clock_freq = device.max_clock_frequency()?;
 
-                wrapped.push(MiningDevice {
+                let device = MiningDevice {
                     device,
                     name,
                     compute_units,
                     clock_freq,
-                });
+                };
+
+                log::debug!("Found compatible OpenCL device: {:#?}", device);
+
+                wrapped.push(device);
             }
 
             Ok(wrapped)
@@ -131,9 +135,16 @@ impl OclMiner {
             ..
         }: &MinerConfig,
     ) -> Result<Self, MinerError> {
+        log::info!("Initializing OpenCL miner on {}", name);
+
         let ctx = device.create_context()?;
         let queue = ctx.create_queue(device)?;
         let program = ProgramBuilder::with_source(&ctx, &OCL_SRC).build()?;
+
+        let build_log = program.build_info(device)?.log()?;
+        let build_log = build_log.to_string_lossy();
+        log::info!("Program build log:\n{}", build_log.trim());
+
         let kernel = program.create_kernel(&CString::new("mine").unwrap())?;
 
         let input_buf = ctx
@@ -229,8 +240,6 @@ impl Miner for OclMiner {
             } else if cycle_time.as_secs_f32() > self.target_rate * 2.0 {
                 work_size = max(1, work_size / 2);
             }
-
-            //            println!("work size: {} / {}", work_size, self.max_work_size);
         }
 
         Ok(())

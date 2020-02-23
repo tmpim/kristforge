@@ -36,6 +36,7 @@ pub enum Opts {
         miner_cfg: MinerConfig,
 
         /// The address to mine krist for
+        #[structopt(env = "KRISTFORGE_ADDRESS")]
         address: Address,
     },
 }

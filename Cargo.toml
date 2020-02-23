@@ -23,7 +23,7 @@ log = "0.4.8"
 simplelog = "0.7.4"
 dirs = "2.0.2"
 rand = "0.7.3"
-dynamic_ocl = { git = "https://github.com/dmarcuse/dynamic_ocl.git", rev = "8d1450d" }
+dynamic_ocl = { git = "https://github.com/dmarcuse/dynamic_ocl.git", rev = "ba2cfc239be685e7251918badd77242397a463bc" }
 enumset = "0.4.4"
 itertools = "0.8.2"
 num_cpus = "1.11.1"

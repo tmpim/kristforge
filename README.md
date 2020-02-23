@@ -1,4 +1,4 @@
-# kristforge
+# kristforge ![Rust tests](https://github.com/tmpim/kristforge/workflows/Rust%20tests/badge.svg)
 
 Kristforge is a cross-platform hardware accelerated GPU and CPU [krist](https://krist.ceriat.net) miner. Kristforge uses
 OpenCL and accelerated CPU instruction sets to maximize performance, making it the fastest krist miner in existence.

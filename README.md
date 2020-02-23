@@ -8,7 +8,9 @@ OpenCL and accelerated CPU instruction sets to maximize performance, making it t
 ## Download
 
 Pre-built 64-bit binaries for Linux and Windows can be found on the
-[release page](https://github.com/tmpim/kristforge/releases).
+[release page](https://github.com/tmpim/kristforge/releases). Unofficial packages are also available for Arch Linux in
+the AUR ([kristforge-bin](https://aur.archlinux.org/packages/kristforge-bin/) or
+[kristforge-git](https://aur.archlinux.org/packages/kristforge-git/)).
 
 ## Usage
 

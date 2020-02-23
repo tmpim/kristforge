@@ -1,8 +1,9 @@
 # Changelog
 
-## 3.1.3 (unreleased)
+## 3.1.3 (Unreleased)
 
 - Allow specifying krist address via KRISTFORGE_ADDRESS environment variable
+- Fix crash related to OpenCL compiler unloading
 
 ## 3.1.2
 

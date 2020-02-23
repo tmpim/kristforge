@@ -73,7 +73,7 @@ pub fn create_miners(opts: MinerConfig) -> Result<Vec<Box<dyn Miner + Send>>, Mi
         }
 
         for platform in Platform::get_platforms()? {
-            platform.unload_compiler()?;
+            let _ = platform.unload_compiler();
         }
     }
 

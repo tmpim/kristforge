@@ -1,7 +1,7 @@
 mod sha;
 mod unoptimized;
 
-use super::framework::{HashInput, Kernel};
+use super::framework::{Kernel, KernelInput, ScalarKernelInput};
 pub use sha::SHA;
 pub use unoptimized::Unoptimized;
 
@@ -28,8 +28,8 @@ mod tests {
     use ring::digest::{digest, SHA256};
     use std::str::FromStr;
 
-    fn test_kernel(kernel: impl Kernel) {
-        let mut input = HashInput::new(Address::from_str("k5ztameslf").unwrap(), 0);
+    fn test_scalar_kernel(kernel: impl Kernel<Input = ScalarKernelInput>) {
+        let mut input = ScalarKernelInput::new(Address::from_str("k5ztameslf").unwrap(), 0);
         input.set_block(&*b"abce8f03b1d2");
 
         let expected_hex = hex::encode(digest(&SHA256, input.data()).as_ref());
@@ -47,13 +47,13 @@ mod tests {
 
     #[test]
     fn test_unoptimized_kernel() {
-        test_kernel(Unoptimized);
+        test_scalar_kernel(Unoptimized);
     }
 
     #[test]
     fn test_sha_kernel() {
         if is_x86_feature_detected!("sha") {
-            test_kernel(SHA);
+            test_scalar_kernel(SHA);
         }
     }
 }

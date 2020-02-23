@@ -4,13 +4,15 @@
     overflowing_literals
 )]
 
-use super::{score_ab, HashInput, Kernel};
+use super::{score_ab, Kernel, ScalarKernelInput};
 use std::arch::x86_64::*;
 
 pub struct SHA;
 impl Kernel for SHA {
+    type Input = ScalarKernelInput;
+
     #[inline(always)]
-    fn score(&self, input: &HashInput) -> u64 {
+    fn score(&self, input: &ScalarKernelInput) -> u64 {
         let [a, b, _, _, _, _, _, _] = digest(input.data_block());
         score_ab(a, b)
     }

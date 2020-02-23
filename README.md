@@ -1,6 +1,7 @@
 # kristforge
 
-GPU-accelerated cross platform Krist miner, using OpenCL
+Kristforge is a cross-platform hardware accelerated GPU and CPU [krist](https://krist.ceriat.net) miner. Kristforge uses
+OpenCL and accelerated CPU instruction sets to maximize performance, making it the fastest krist miner in existence.
 
 ![Screenshot](.github/example.png)
 

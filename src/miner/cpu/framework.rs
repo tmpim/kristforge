@@ -10,16 +10,16 @@ use std::sync::atomic::{AtomicU64, Ordering};
 /// A type that can be used to efficiently feed input to a CPU miner kernel
 pub trait KernelInput: Sized {
     /// Create a new instance with the given address and nonce
-    fn new(address: Address, nonce: u64) -> Self;
+    unsafe fn new(address: Address, nonce: u64) -> Self;
 
     /// Set the block
-    fn set_block(&mut self, block: &[u8; 12]);
+    unsafe fn set_block(&mut self, block: &[u8; 12]);
 
     /// Increment the nonce for the next cycle
-    fn increment_nonce(&mut self);
+    unsafe fn increment_nonce(&mut self);
 
     type Score;
-    fn get_solution(&mut self, work: u64, score: Self::Score) -> Option<String>;
+    unsafe fn get_solution(&mut self, work: u64, score: Self::Score) -> Option<String>;
 }
 
 /// A type to manage miner digest input for scalar kernels
@@ -30,7 +30,7 @@ pub struct ScalarKernelInput {
 }
 
 impl KernelInput for ScalarKernelInput {
-    fn new(address: Address, nonce: u64) -> Self {
+    unsafe fn new(address: Address, nonce: u64) -> Self {
         let mut data = [0u8; 64];
 
         data[..Address::LENGTH].copy_from_slice(address.as_bytes());
@@ -45,11 +45,11 @@ impl KernelInput for ScalarKernelInput {
         input
     }
 
-    fn set_block(&mut self, block: &[u8; 12]) {
+    unsafe fn set_block(&mut self, block: &[u8; 12]) {
         self.data[Address::LENGTH..Self::LENGTH - Self::NONCE_LENGTH].copy_from_slice(block);
     }
 
-    fn increment_nonce(&mut self) {
+    unsafe fn increment_nonce(&mut self) {
         self.nonce = self.nonce.wrapping_add(1);
         let n = self.nonce;
 
@@ -61,7 +61,7 @@ impl KernelInput for ScalarKernelInput {
     type Score = u64;
 
     #[inline(always)]
-    fn get_solution(&mut self, work: u64, score: u64) -> Option<String> {
+    unsafe fn get_solution(&mut self, work: u64, score: u64) -> Option<String> {
         if score <= work {
             Some(self.nonce_str().to_string())
         } else {
@@ -135,24 +135,26 @@ impl<'a> Context<'a> {
 
     /// Mine synchronously using this context and the given kernel.
     pub fn mine<K: Kernel>(self, kernel: K) {
-        const BATCH_SIZE: u64 = 10_000;
-        let mut input = K::Input::new(self.address, self.nonce);
+        unsafe {
+            const BATCH_SIZE: u64 = 10_000;
+            let mut input = K::Input::new(self.address, self.nonce);
 
-        while let Some((block, work)) = self.target.load() {
-            input.set_block(&block);
+            while let Some((block, work)) = self.target.load() {
+                input.set_block(&block);
 
-            for _ in 0..BATCH_SIZE {
-                let score = kernel.score(&input);
-                if let Some(solution) = input.get_solution(work, score) {
-                    // solution found!
-                    if self.sol_tx.send(solution).is_err() {
-                        return;
+                for _ in 0..BATCH_SIZE {
+                    let score = kernel.score(&input);
+                    if let Some(solution) = input.get_solution(work, score) {
+                        // solution found!
+                        if self.sol_tx.send(solution).is_err() {
+                            return;
+                        }
                     }
+                    input.increment_nonce();
                 }
-                input.increment_nonce();
-            }
 
-            self.hashes.fetch_add(BATCH_SIZE, Ordering::Relaxed);
+                self.hashes.fetch_add(BATCH_SIZE, Ordering::Relaxed);
+            }
         }
     }
 }

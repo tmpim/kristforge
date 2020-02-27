@@ -18,10 +18,8 @@ use std::time::{Duration, Instant};
 /// Select a CPU mining kernel to use
 #[derive(Debug, EnumSetType, PartialOrd, Ord)]
 pub enum KernelType {
-    /// CPU mining kernel with no hardware-specific optimizations.
     Unoptimized,
-
-    /// CPU mining kernel using x86/x86_64 SHA instructions
+    AVX2,
     SHA,
 }
 
@@ -35,6 +33,7 @@ impl FromStr for KernelType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s.to_lowercase().as_ref() {
             "unoptimized" => Self::Unoptimized,
+            "avx2" => Self::AVX2,
             "sha" => Self::SHA,
             s => return Err(InvalidKernelType(s.to_string())),
         })
@@ -45,6 +44,7 @@ impl KernelType {
     pub fn mine_with(self, context: Context) {
         match self {
             Self::Unoptimized => context.mine(kernels::Unoptimized),
+            Self::AVX2 => todo!(),
             Self::SHA => context.mine(kernels::SHA),
         }
     }
@@ -60,6 +60,7 @@ impl Display for KernelType {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let name = match self {
             Self::Unoptimized => "unoptimized",
+            Self::AVX2 => "AVX2",
             Self::SHA => "SHA",
         };
 
@@ -90,6 +91,10 @@ impl Display for CpuInfo {
 
 fn get_supported_kernels() -> EnumSet<KernelType> {
     let mut supported = EnumSet::only(KernelType::Unoptimized);
+
+    if is_x86_feature_detected!("avx2") {
+        supported |= KernelType::AVX2;
+    }
 
     if is_x86_feature_detected!("sha") {
         supported |= KernelType::SHA;

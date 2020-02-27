@@ -1,3 +1,4 @@
+mod avx2;
 mod sha;
 mod unoptimized;
 

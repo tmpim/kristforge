@@ -71,7 +71,7 @@ impl KernelInput for ScalarKernelInput {
 }
 
 impl ScalarKernelInput {
-    const NONCE_LENGTH: usize = 11;
+    pub const NONCE_LENGTH: usize = 11;
     pub const LENGTH: usize = Address::LENGTH + (ShortHash::LENGTH * 2) + Self::NONCE_LENGTH;
 
     fn nonce_mut(&mut self) -> &mut [u8] {

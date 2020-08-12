@@ -1,7 +1,7 @@
 mod sha;
 mod unoptimized;
 
-use super::framework::{Kernel, KernelInput, ScalarKernelInput};
+use super::framework::{Kernel, ScalarKernelInput};
 pub use sha::SHA;
 pub use unoptimized::Unoptimized;
 
@@ -23,6 +23,7 @@ fn score_output(h: &[u8]) -> u64 {
 
 #[cfg(test)]
 mod tests {
+    use super::super::framework::KernelInput;
     use super::*;
     use crate::krist::address::Address;
     use ring::digest::{digest, SHA256};

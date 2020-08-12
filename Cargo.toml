@@ -7,34 +7,34 @@ edition = "2018"
 license = "Apache-2.0"
 
 [dependencies]
-serde = { version = "1.0.104", features = [ "derive" ] }
-serde_json = "1.0.45"
-hex = "0.4.0"
-thiserror = "1.0.10"
-futures = "0.3.1"
-tokio = { version = "0.2.11", features = [ "macros" ] }
-tokio-tungstenite = { version = "0.10.1", features = [ "tls" ] }
-isahc = "0.8.2"
+serde = { version = "1.0.115", features = [ "derive" ] }
+serde_json = "1.0.57"
+hex = "0.4.2"
+thiserror = "1.0.20"
+futures = "0.3.5"
+tokio = { version = "0.2.22", features = [ "macros" ] }
+tokio-tungstenite = { version = "0.11.0", features = [ "tls" ] }
+isahc = "0.9.8"
 lazy_static = "1.4.0"
-structopt = "0.3.8"
+structopt = "0.3.16"
 url = { version = "2.1.1", features = [ "serde" ] }
-indicatif = "0.14.0"
-log = "0.4.8"
-simplelog = "0.7.4"
-dirs = "2.0.2"
+indicatif = "0.15.0"
+log = "0.4.11"
+simplelog = "0.8.0"
+dirs = "3.0.1"
 rand = "0.7.3"
 dynamic_ocl = "0.1.0-alpha.1"
-enumset = "0.4.4"
-itertools = "0.8.2"
-num_cpus = "1.11.1"
+enumset = "1.0.1"
+itertools = "0.9.0"
+num_cpus = "1.13.0"
 crossbeam = "0.7.3"
-ring = "0.16.11"
+ring = "0.16.15"
 
 [target.'cfg(windows)'.dependencies]
-winapi = "0.3.8"
+winapi = "0.3.9"
 
 [target.'cfg(unix)'.dependencies]
-libc = "0.2.67"
+libc = "0.2.74"
 
 [profile.release]
 lto = true

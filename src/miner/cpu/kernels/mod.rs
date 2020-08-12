@@ -23,6 +23,7 @@ fn score_output(h: &[u8]) -> u64 {
 
 #[cfg(test)]
 mod tests {
+    use super::super::framework::KernelInput;
     use super::*;
     use crate::krist::address::Address;
     use ring::digest::{digest, SHA256};

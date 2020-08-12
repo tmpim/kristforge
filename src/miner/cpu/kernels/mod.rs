@@ -1,7 +1,7 @@
 mod sha;
 mod unoptimized;
 
-use super::framework::{Kernel, KernelInput, ScalarKernelInput};
+use super::framework::{Kernel, ScalarKernelInput};
 pub use sha::SHA;
 pub use unoptimized::Unoptimized;
 

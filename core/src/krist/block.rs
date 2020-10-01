@@ -1,4 +1,4 @@
-use super::address::Address;
+use super::Address;
 use hex::FromHexError;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;

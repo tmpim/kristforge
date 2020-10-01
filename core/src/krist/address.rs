@@ -1,76 +1,49 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use std::convert::{TryFrom, TryInto};
 use std::fmt::{self, Debug, Display, Formatter};
 use std::str::FromStr;
 
-/// A krist address - v1 and v2 compatible
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(try_from = "&str", into = "String")]
+/// A krist address
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
+#[serde(try_from = "&str")]
 pub struct Address([u8; Address::LENGTH]);
 
 impl Address {
-    /// The required length of krist addresses, in bytes
     pub const LENGTH: usize = 10;
-
-    /// The set of allowed characters for v1 addresses
-    pub const V1_CHARS: &'static str = "1234567890abcdef";
-
-    /// The set of allowed characters for v2 addresses
-    pub const V2_CHARS: &'static str = "1234567890abcdefghijklmnopqrstuvwxyz";
-
-    /// Get this krist address as a string slice
     pub fn as_str(&self) -> &str {
-        // the contents were originally from a utf-8 string, so this should
-        // never panic
         std::str::from_utf8(&self.0).unwrap()
     }
-
     pub fn as_bytes(&self) -> &[u8; Address::LENGTH] {
         &self.0
     }
 }
 
-/// An error caused by an invalid address
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
-pub enum InvalidAddress {
-    #[error("invalid address length: {0}")]
-    InvalidLength(usize),
-
-    #[error("illegal character: {0} at index {1}")]
-    IllegalCharacter(char, usize),
-}
+#[error("invalid address length: {0}")]
+pub struct InvalidAddressLength(usize);
 
 impl FromStr for Address {
-    type Err = InvalidAddress;
+    type Err = InvalidAddressLength;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // v1 and v2 addresses allow a different set of characters
-        let allowed = if s.starts_with('k') {
-            Self::V2_CHARS
-        } else {
-            Self::V1_CHARS
-        };
-
-        // search for illegal characters
-        if let Some((i, c)) = s.chars().enumerate().find(|&(_, c)| !allowed.contains(c)) {
-            return Err(InvalidAddress::IllegalCharacter(c, i));
-        }
-
-        // convert to bytes
-        let bytes: [u8; Self::LENGTH] = s
-            .as_bytes()
+        s.as_bytes()
             .try_into()
-            .map_err(|_| InvalidAddress::InvalidLength(s.len()))?;
-
-        Ok(Self(bytes))
+            .map(Self)
+            .map_err(|_| InvalidAddressLength(s.len()))
     }
 }
 
 impl TryFrom<&str> for Address {
-    type Error = InvalidAddress;
+    type Error = InvalidAddressLength;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Self::from_str(value)
+    }
+}
+
+impl Serialize for Address {
+    fn serialize<S: Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
+        ser.serialize_str(self.as_str())
     }
 }
 
@@ -124,11 +97,7 @@ mod tests {
     fn check_invalid_addresses() {
         assert_eq!(
             Address::from_str("abc").unwrap_err(),
-            InvalidAddress::InvalidLength(3)
-        );
-        assert_eq!(
-            Address::from_str("abcdefghij").unwrap_err(),
-            InvalidAddress::IllegalCharacter('g', 6)
+            InvalidAddressLength(3)
         );
     }
 

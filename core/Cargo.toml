@@ -1,0 +1,33 @@
+[package]
+name = "kristforge_core"
+version = "4.0.0-alpha"
+authors = ["Dana Marcuse <dana@marcuse.us>"]
+edition = "2018"
+description = "Hardware-accelerated CPU and GPU krist miner"
+license = "Apache-2.0"
+
+[dependencies]
+serde = { version = "1.0.123", features = ["derive"] }
+serde_json = "1.0.62"
+thiserror = "1.0.24"
+color-eyre = "0.5.10"
+tracing = "0.1.25"
+tracing-futures = "0.2.5"
+hex = "0.4.2"
+futures-util = "0.3.13"
+
+[dependencies.reqwest]
+version = "0.11.1"
+default_features = false
+features = [
+    "json",
+    "rustls-tls"
+]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+structopt = "0.3.21"
+async-tungstenite = { version = "0.13.0", features = ["tokio-rustls"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+ws_stream_wasm = "0.7.0"
+pharos = "0.5.1"

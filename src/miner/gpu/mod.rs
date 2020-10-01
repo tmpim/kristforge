@@ -1,16 +1,14 @@
 use super::MinerError;
 use crate::miner::interface::{CurrentTarget, MinerInterface};
 use crate::miner::{Miner, MinerConfig};
-use dynamic_ocl::buffer::flags::{DeviceReadOnly, DeviceWriteOnly, HostReadOnly, HostWriteOnly};
+use dynamic_ocl::buffer::flags::{DeviceReadOnly, DeviceWriteOnly, HostReadWrite, HostWriteOnly};
 use dynamic_ocl::buffer::Buffer;
 use dynamic_ocl::device::{Device, DeviceType};
 use dynamic_ocl::kernel::Kernel;
 use dynamic_ocl::platform::Platform;
 use dynamic_ocl::program::ProgramBuilder;
 use dynamic_ocl::queue::Queue;
-use dynamic_ocl::raw::{
-    cl_device_info, cl_uchar, cl_uint, cl_ulong, OpenCLVersion, CL_DEVICE_NOT_FOUND,
-};
+use dynamic_ocl::raw::{cl_device_info, cl_uchar, cl_uint, cl_ulong, CL_DEVICE_NOT_FOUND};
 use dynamic_ocl::util::OclInfo;
 use dynamic_ocl::{load_opencl, Error as OclError};
 use std::cmp::{max, min};
@@ -68,14 +66,6 @@ pub fn get_opencl_devices() -> Result<Vec<MiningDevice>, MinerError> {
             log::error!("OpenCL load error: {:?}", e);
             Ok(vec![])
         }
-        Ok(v) if v < OpenCLVersion::CL12 => {
-            eprintln!(
-                "OpenCL 1.2 is required but system only supports {}; GPU support disabled.",
-                v
-            );
-            log::error!("Unsupported OpenCL version {:?}", v);
-            Ok(vec![])
-        }
         Ok(_) => {
             let mut devices = HashSet::new();
 
@@ -115,7 +105,7 @@ type MinerKernel = Kernel<(
     Buffer<'static, HostWriteOnly, cl_uchar>,
     cl_ulong,
     cl_ulong,
-    Buffer<'static, HostReadOnly, cl_uchar>,
+    Buffer<'static, HostReadWrite, cl_uchar>,
 )>;
 
 pub struct OclMiner {
@@ -155,7 +145,6 @@ impl OclMiner {
 
         let output_buf = ctx
             .buffer_builder()
-            .host_access::<HostReadOnly>()
             .device_access::<DeviceWriteOnly>()
             .alloc_host_ptr()
             .build_copying_slice(&[0u8; 11])?;
@@ -225,7 +214,7 @@ impl Miner for OclMiner {
                 // zero out solution buffer
                 self.queue
                     .buffer_cmd(&mut self.kernel.arguments().3)
-                    .fill(&0)?;
+                    .write(&[0; 11])?;
             }
 
             let cycle_time = std::mem::replace(&mut cycle_start, Instant::now()).elapsed();

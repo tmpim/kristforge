@@ -2,7 +2,8 @@ use super::{Address, Block, ShortHash};
 use color_eyre::eyre;
 use color_eyre::eyre::WrapErr;
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{json, Value};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -36,16 +37,36 @@ impl Solution {
 
 /// A message from the server containing target information.
 #[derive(Debug, Clone, Deserialize)]
-pub struct ServerMessage {
-    pub block: Block,
-    pub work: u64,
+#[serde(untagged)]
+pub enum ServerMessage {
+    /// A message containing a mining target.
+    Target {
+        #[serde(alias = "last_block")]
+        block: Block,
+
+        #[serde(alias = "new_work")]
+        work: u64,
+
+        /// Any extra fields this message contained.
+        #[serde(flatten)]
+        extra_fields: HashMap<String, Value>,
+    },
+
+    /// Any other message type.
+    Other {
+        #[serde(flatten)]
+        fields: HashMap<String, Value>,
+    },
 }
 
 impl ServerMessage {
-    pub fn as_target(&self) -> Target {
-        Target {
-            work: self.work,
-            block: self.block.short_hash,
+    pub fn as_target(&self) -> Option<Target> {
+        match self {
+            ServerMessage::Target { block, work, .. } => Some(Target {
+                work: *work,
+                block: block.short_hash,
+            }),
+            ServerMessage::Other { .. } => None,
         }
     }
 

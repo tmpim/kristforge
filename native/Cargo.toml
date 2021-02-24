@@ -1,0 +1,30 @@
+[package]
+name = "kristforge_native"
+version = "4.0.0-alpha"
+authors = ["Dana Marcuse <dana@marcuse.us>"]
+edition = "2018"
+description = "Hardware-accelerated CPU and GPU krist miner"
+license = "Apache-2.0"
+
+[dependencies]
+kristforge_core = { path = "../core" }
+tokio = { version = "1.2.0", features = ["rt-multi-thread", "macros"] }
+tracing = "0.1.25"
+tracing-futures = "0.2.5"
+tracing-subscriber = "0.2.16"
+tracing-appender = "0.1.2"
+tracing-error = "0.1.2"
+color-eyre = "0.5.10"
+structopt = "0.3.21"
+dirs-next = "2.0.0"
+futures-util = "0.3.13"
+
+[target.'cfg(windows)'.dependencies]
+winapi = "0.3.9"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.86"
+
+[[bin]]
+name = "kristforge"
+path = "src/main.rs"

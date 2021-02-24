@@ -1,5 +1,5 @@
 [workspace]
-members = ["core", "native"]
+members = ["core", "native", "web"]
 
 [profile.release]
 codegen-units = 1

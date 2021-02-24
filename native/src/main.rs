@@ -2,7 +2,7 @@ mod thread_priority;
 
 use color_eyre::eyre::{self, eyre, WrapErr};
 use futures_util::TryStreamExt;
-use kristforge_core::network::{connect_krist, NetOptions};
+use kristforge_core::network::{connect_krist_raw, NetOptions};
 use std::fs::{create_dir_all, File};
 use std::io::Write;
 use structopt::StructOpt;
@@ -87,12 +87,12 @@ fn main() -> eyre::Result<()> {
 async fn run(opts: Options) -> eyre::Result<()> {
     match opts.command {
         Command::NetLog { net_opts } => {
-            let (_, mut rx) = connect_krist(net_opts).await?;
+            let (_, mut rx) = connect_krist_raw(net_opts).await?;
             eprintln!("Websocket connection established");
 
             while let Some(msg) = rx.try_next().await? {
-                debug!(?msg);
-                println!("{:?}", msg);
+                debug!(%msg);
+                println!("{}", msg);
             }
 
             eprintln!("Websocket connection closed");

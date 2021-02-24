@@ -23,7 +23,7 @@ pub struct Solution {
 
 impl Solution {
     /// Encode this solution to JSON that can be sent to the server.
-    pub(crate) fn to_json(self) -> String {
+    pub(crate) fn to_json(self) -> Value {
         static SUBMISSION_ID: AtomicUsize = AtomicUsize::new(1);
         json!({
             "id": SUBMISSION_ID.fetch_add(1, Ordering::AcqRel),
@@ -31,7 +31,6 @@ impl Solution {
             "address": self.address,
             "nonce": self.nonce,
         })
-        .to_string()
     }
 }
 
@@ -71,7 +70,7 @@ impl ServerMessage {
     }
 
     #[tracing::instrument(err)]
-    pub(crate) fn from_json(json: impl AsRef<str> + Debug) -> eyre::Result<Self> {
-        serde_json::from_str(json.as_ref()).wrap_err("invalid json for target message")
+    pub(crate) fn from_json(json: Value) -> eyre::Result<Self> {
+        serde_json::from_value(json).wrap_err("invalid json for target message")
     }
 }

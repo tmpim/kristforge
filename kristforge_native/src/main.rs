@@ -2,6 +2,8 @@ mod thread_priority;
 
 use color_eyre::eyre::{self, eyre, WrapErr};
 use futures_util::TryStreamExt;
+use kristforge_core::miner::gpu::GpuMiner;
+use kristforge_core::miner::BenchmarkInterface;
 use kristforge_core::network::{connect_krist_raw, NetOptions};
 use std::fs::{create_dir_all, File};
 use std::io::Write;
@@ -20,6 +22,13 @@ pub enum Command {
         #[structopt(flatten)]
         net_opts: NetOptions,
     },
+
+    /// Get information about mining hardware.
+    Info,
+
+    /// Run as fast as possible without actually mining any krist, to benchmark
+    /// miner performance.
+    Benchmark,
 }
 
 #[derive(Debug, StructOpt)]
@@ -96,6 +105,21 @@ async fn run(opts: Options) -> eyre::Result<()> {
             }
 
             eprintln!("Websocket connection closed");
+        }
+
+        Command::Info => {
+            for device in GpuMiner::get_miners().await? {
+                println!("{}", device);
+            }
+        }
+
+        Command::Benchmark => {
+            let device = GpuMiner::get_miners().await?.into_iter().next().unwrap();
+            println!("{}", device);
+            device
+                .mine(BenchmarkInterface(|r| println!("{}", r)))
+                .await?;
+            println!("Done!");
         }
     }
 

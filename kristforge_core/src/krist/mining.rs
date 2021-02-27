@@ -1,24 +1,24 @@
 use super::{Address, Block, ShortHash};
 use color_eyre::eyre;
 use color_eyre::eyre::WrapErr;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// A mining target, specifying the current work and previous block.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Target {
     pub work: u64,
     pub block: ShortHash,
 }
 
 /// A solution to be submitted to the node.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Solution {
     pub address: Address,
-    pub nonce: [u8; 8],
+    pub nonce: [u8; 10],
 }
 
 impl Solution {

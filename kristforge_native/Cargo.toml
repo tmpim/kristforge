@@ -7,7 +7,7 @@ description = "Hardware-accelerated CPU and GPU krist miner"
 license = "Apache-2.0"
 
 [dependencies]
-kristforge_core = { path = "../core" }
+kristforge_core = { path = "../kristforge_core" }
 tokio = { version = "1.2.0", features = ["rt-multi-thread", "macros"] }
 tracing = "0.1.25"
 tracing-futures = "0.2.5"

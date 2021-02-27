@@ -1,5 +1,5 @@
 [workspace]
-members = ["core", "native", "web"]
+members = ["kristforge_core", "kristforge_native", "kristforge_web"]
 
 [profile.release]
 codegen-units = 1

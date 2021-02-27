@@ -1,0 +1,17 @@
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+  </head>
+  <body>
+    <script type="module">
+      import init, { enumerate_gpu_devices } from "./pkg/kristforge_web.js";
+      
+      async function run() {
+        await init();
+        await enumerate_gpu_devices();
+      }
+
+      run();
+    </script>
+  </body>
+</html>

@@ -7,7 +7,7 @@ use std::str::FromStr;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(try_from = "&str", into = "String")]
-pub struct ShortHash([u8; ShortHash::LENGTH]);
+pub struct ShortHash(pub [u8; ShortHash::LENGTH]);
 
 impl ShortHash {
     pub const LENGTH: usize = 6;

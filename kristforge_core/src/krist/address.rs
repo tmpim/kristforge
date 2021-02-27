@@ -6,7 +6,7 @@ use std::str::FromStr;
 /// A krist address
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
 #[serde(try_from = "&str")]
-pub struct Address([u8; Address::LENGTH]);
+pub struct Address(pub(crate) [u8; Address::LENGTH]);
 
 impl Address {
     pub const LENGTH: usize = 10;

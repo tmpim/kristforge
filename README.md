@@ -12,6 +12,8 @@ Pre-built 64-bit binaries for Linux and Windows can be found on the
 the AUR ([kristforge-bin](https://aur.archlinux.org/packages/kristforge-bin/) or
 [kristforge-git](https://aur.archlinux.org/packages/kristforge-git/)).
 
+**Note**: Linux users must acquire the package 'ocl-icd-opencl-dev' for libOpenCL.so. Upon installation, libOpenCL.so should be located in '/usr/lib/x86_64-linux-gnu/libOpenCL.so'
+
 ## Usage
 
 Kristforge supports both CPU and GPU mining. GPU mining is usually faster and more efficient, but modern CPUs can also

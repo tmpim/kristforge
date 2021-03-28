@@ -69,7 +69,16 @@ pub fn get_opencl_devices() -> Result<Vec<MiningDevice>, MinerError> {
         Ok(_) => {
             let mut devices = HashSet::new();
 
-            for platform in Platform::get_platforms()? {
+            let platforms = match Platform::get_platforms() {
+                Err(e) => {
+                    eprintln!("Failed to enumerate OpenCL platforms; GPU support disabled. Check logs for details.");
+                    log::error!("Error getting platform IDs: {:?}", e);
+                    return Ok(vec![]);
+                }
+                Ok(p) => p,
+            };
+
+            for platform in platforms {
                 let platform_devices = match platform.get_devices(DeviceType::GPU) {
                     Err(OclError::ApiError(e)) if e.code() == CL_DEVICE_NOT_FOUND => vec![],
                     e => e?,

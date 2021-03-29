@@ -1,8 +1,12 @@
 # Changelog
 
-## 3.1.3 (Unreleased)
+## 3.1.4
 
-- Allow specifying krist address via KRISTFORGE_ADDRESS environment variable
+- Fix crash on systems where OpenCL isn't available (will now degrade gracefully to CPU-only mining as intended)
+
+## 3.1.3 
+
+- Allow specifying krist address via `KRISTFORGE_ADDRESS` environment variable
 - Fix crash related to OpenCL compiler unloading
 
 ## 3.1.2

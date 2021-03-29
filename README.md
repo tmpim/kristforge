@@ -8,16 +8,17 @@ OpenCL and accelerated CPU instruction sets to maximize performance, making it t
 ## Download
 
 Pre-built 64-bit binaries for Linux and Windows can be found on the
-[release page](https://github.com/tmpim/kristforge/releases). Unofficial packages are also available for Arch Linux in
-the AUR ([kristforge-bin](https://aur.archlinux.org/packages/kristforge-bin/) or
-[kristforge-git](https://aur.archlinux.org/packages/kristforge-git/)).
+[release page](https://github.com/tmpim/kristforge/releases).
 
 ## Usage
 
 Kristforge supports both CPU and GPU mining. GPU mining is usually faster and more efficient, but modern CPUs can also
-provide decent speeds. OpenCL drivers are required for GPU support to work - these are usually included with your
+provide decent speeds.
+
+OpenCL drivers are required for GPU support to work - these are usually included with your
 graphics drivers, but you may need to manually install them. See your manufacturer's driver/support page for
-instructions for your specific setup.
+instructions for your specific setup. On Linux systems in particular, these are often packaged separately from graphics
+drivers, and should be installed through your distribution's package manager.
 
 Kristforge provides many command-line options to configure it to suit your needs, but also intelligently selects 
 defaults that provide near-optimal performance for most users. The default behavior of kristforge is to use all GPU

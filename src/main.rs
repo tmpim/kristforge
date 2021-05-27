@@ -144,7 +144,7 @@ async fn mine(
                 block
             );
 
-            if address == block.address && msg_type != "hello" {
+            if address == block.address && msg_type == "response" {
                 mined_kst += block.value;
                 wallet_pb.set_message(&format!("Mined {} KST for {}", mined_kst, address));
             }

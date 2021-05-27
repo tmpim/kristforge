@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.5
+
+- Fix mined krist being double-counted (https://github.com/tmpim/kristforge/issues/16)
+- Updated dependencies
+
 ## 3.1.4
 
 - Fix crash on systems where OpenCL isn't available (will now degrade gracefully to CPU-only mining as intended)

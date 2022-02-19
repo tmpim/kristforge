@@ -158,7 +158,13 @@ impl OclMiner {
             .alloc_host_ptr()
             .build_copying_slice(&[0u8; 11])?;
 
-        let kernel = kernel.bind_arguments((input_buf, 0, 0, output_buf))?;
+        // kernel arg type checks can cause issues with some OpenCL drivers, so
+        // we disable them in release mode
+        let kernel = if cfg!(debug_assertions) {
+            kernel.bind_arguments((input_buf, 0, 0, output_buf))?
+        } else {
+            kernel.bind_arguments_unchecked((input_buf, 0, 0, output_buf))?
+        };
 
         Ok(Self {
             name,

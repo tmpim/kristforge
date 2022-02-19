@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.6
+
+- Fix panic with intel iGPU OpenCL runtime due to flaky kernel argument type checks (https://github.com/tmpim/kristforge/issues/18)
+- Updated dependencies
+
 ## 3.1.5
 
 - Fix mined krist being double-counted (https://github.com/tmpim/kristforge/issues/16)
